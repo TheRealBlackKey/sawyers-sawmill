@@ -48,6 +48,9 @@ public class TreeComponent : MonoBehaviour
     private float _randomScaleMultiplier = 1f;
     private float _randomGrowthModifier = 1f;
     private Sprite _chosenMatureSprite;
+    private Vector3 _baseLocalPosition;
+    private float _baseWorldY;
+    private bool _basePositionStored = false;
 
     // ── Planting ──────────────────────────────────────────────────────
 
@@ -264,12 +267,27 @@ public class TreeComponent : MonoBehaviour
     {
         if (_spriteRenderer == null) return;
 
+        // Cache the original designated position of the tree slot in its container
+        if (!_basePositionStored)
+        {
+            _baseLocalPosition = transform.localPosition;
+            
+            // Shift the sorting anchor down to represent the absolute base/roots of the tree.
+            // Since the tree spans 'baseScale' units and is centered, its bottom is exactly half that scale down.
+            _baseWorldY = transform.position.y - (baseScale * 0.5f);
+            
+            _basePositionStored = true;
+        }
+
         // Trees lower on screen (more negative Y) render in front of trees higher up.
         // Multiply by -1 so lower Y = higher sorting order.
         // Scale by 10 to give enough integer range across the strip height.
-        // Add +100 to ensure even the highest trees on the map render above the background (which is usually -10).
+        // Add +10000 to ensure even the highest trees on the map render above the background (which is usually -10).
         _spriteRenderer.sortingLayerName = "Default";
-        _spriteRenderer.sortingOrder = Mathf.RoundToInt(-transform.position.y * 10f) + 100;
+        _spriteRenderer.sortingOrder = Mathf.RoundToInt(-_baseWorldY * 10f) + 10000;
+        
+        // Reset local position to the grid base before applying scale offsets
+        transform.localPosition = _baseLocalPosition;
 
         switch (State)
         {
@@ -282,28 +300,37 @@ public class TreeComponent : MonoBehaviour
                 if (spriteStump != null) _spriteRenderer.sprite = spriteStump;
                 else _spriteRenderer.sprite = null;
                 _spriteRenderer.color = Color.white;
-                transform.localScale  = Vector3.one * (baseScale * 0.5f);
+                float stumpScale = baseScale * 0.5f;
+                transform.localScale  = Vector3.one * stumpScale;
+                // Shift down so it sits on the ground instead of floating in the center
+                transform.localPosition = _baseLocalPosition + new Vector3(0f, -(baseScale - stumpScale) * 0.5f, 0f);
                 break;
             case TreeState.Sapling:
                 if (spriteSapling != null) _spriteRenderer.sprite = spriteSapling;
                 else if (Species != null && Species.GetRandomSaplingSprite() != null) _spriteRenderer.sprite = Species.GetRandomSaplingSprite();
                 else if (_chosenMatureSprite != null) _spriteRenderer.sprite = _chosenMatureSprite;
                 _spriteRenderer.color = Color.white;
-                transform.localScale  = Vector3.one * (baseScale * 0.4f * _randomScaleMultiplier);
+                float saplingScale = baseScale * 0.4f * _randomScaleMultiplier;
+                transform.localScale  = Vector3.one * saplingScale;
+                transform.localPosition = _baseLocalPosition + new Vector3(0f, -(baseScale - saplingScale) * 0.5f, 0f);
                 break;
             case TreeState.YoungTree:
                 if (Species != null && Species.GetRandomJuvenileSprite() != null) _spriteRenderer.sprite = Species.GetRandomJuvenileSprite();
                 else if (_chosenMatureSprite != null) _spriteRenderer.sprite = _chosenMatureSprite;
                 else if (Species != null && Species.GetRandomSaplingSprite() != null) _spriteRenderer.sprite = Species.GetRandomSaplingSprite();
                 _spriteRenderer.color = Color.white;
-                transform.localScale  = Vector3.one * (baseScale * 0.7f * _randomScaleMultiplier);
+                float youngScale = baseScale * 0.7f * _randomScaleMultiplier;
+                transform.localScale  = Vector3.one * youngScale;
+                transform.localPosition = _baseLocalPosition + new Vector3(0f, -(baseScale - youngScale) * 0.5f, 0f);
                 break;
             case TreeState.ReadyToHarvest:
                 if (spriteHarvest != null) _spriteRenderer.sprite = spriteHarvest;
                 else if (Species != null && Species.treeSpriteReady != null) _spriteRenderer.sprite = Species.treeSpriteReady;
                 else if (_chosenMatureSprite != null) _spriteRenderer.sprite = _chosenMatureSprite;
                 _spriteRenderer.color = new Color(1f, 0.95f, 0.7f);
-                transform.localScale  = Vector3.one * (baseScale * _randomScaleMultiplier);
+                float matureScale = baseScale * _randomScaleMultiplier;
+                transform.localScale  = Vector3.one * matureScale;
+                transform.localPosition = _baseLocalPosition + new Vector3(0f, -(baseScale - matureScale) * 0.5f, 0f);
                 break;
         }
     }

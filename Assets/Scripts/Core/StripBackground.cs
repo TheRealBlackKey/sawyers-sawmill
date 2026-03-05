@@ -60,7 +60,8 @@ namespace Sawmill.Core
             float offsetX = targetLeft - leftVisualEdge;
             float offsetY = targetBottom - bottomVisualEdge;
 
-            transform.position = new Vector3(offsetX, offsetY, 0f);
+            // Push to Z=10 so the background is physically behind all sorting layers
+            transform.position = new Vector3(offsetX, offsetY, 10f);
         }
     }
 }

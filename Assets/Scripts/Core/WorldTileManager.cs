@@ -217,8 +217,8 @@ namespace Sawmill.Core
                                 epicSr.sprite = epicSprite;
                                 epicSr.sortingLayerName = sortingLayerName;
                                 
-                                // Use the same +100 logic as TreeComponent to ensure it renders above the -10 background
-                                epicSr.sortingOrder = Mathf.RoundToInt(-centerOfClusterPos.y * 10f) + 100;
+                                // Use the same +10000 logic as TreeComponent to ensure it renders above the -10 background
+                                epicSr.sortingOrder = Mathf.RoundToInt(-centerOfClusterPos.y * 10f) + 10000;
 
                                 // Scale it up substantially.
                                 float baseScale = 5f; // Match the TreeComponent base scale
@@ -251,7 +251,8 @@ namespace Sawmill.Core
 
                     GameObject grassTileObj = new GameObject($"GrassTile_{x}_{y}");
                     grassTileObj.transform.SetParent(this.transform);
-                    grassTileObj.transform.position = finalPos;
+                    // Push background grass to Z=5 so it sits under all objects but above the StripBackground (Z=10)
+                    grassTileObj.transform.position = new Vector3(finalPos.x, finalPos.y, 5f);
 
                     SpriteRenderer grassSr = grassTileObj.AddComponent<SpriteRenderer>();
                     grassSr.sprite = chosenSprite;

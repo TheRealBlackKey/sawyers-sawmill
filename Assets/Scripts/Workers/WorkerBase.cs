@@ -45,6 +45,13 @@ public abstract class WorkerBase : MonoBehaviour
     public float surfacingSpeedBonus  = 0f;
     public float rareGrainChanceBonus = 0f;
 
+    [Header("Movement Penalties")]
+    [Tooltip("Movement speed multiplier when carrying a heavy log (0.1 to 1.0)")]
+    [Range(0.1f, 1f)] public float logCarrySpeedMultiplier = 0.6f;
+    
+    [Tooltip("Movement speed multiplier when carrying boards (0.1 to 1.0)")]
+    [Range(0.1f, 1f)] public float boardCarrySpeedMultiplier = 0.85f;
+
     // ── State ─────────────────────────────────────────────────────────
     public WorkerState CurrentState { get; protected set; } = WorkerState.Idle;
     public WorkerTask  CurrentTask  { get; protected set; }
@@ -53,6 +60,7 @@ public abstract class WorkerBase : MonoBehaviour
     protected SpriteRenderer    _spriteRenderer;
     protected Vector3           _targetPosition;
     protected bool              _isMoving = false;
+    protected bool              _itemPickedUp = false;
 
     private float _idleTimer = 0f;
 
@@ -76,10 +84,11 @@ public abstract class WorkerBase : MonoBehaviour
     {
         HandleMovement();
         
-        if (_spriteRenderer != null)
+        if (_spriteRenderer != null && _spriteRenderer.sprite != null)
         {
-            // Update sorting order dynamically based on Y position so Sawyer can walk behind buildings
-            _spriteRenderer.sortingOrder = Mathf.RoundToInt(-transform.position.y * 10f);
+            // Use bounds.min.y to evaluate sorting exactly at the lowest visual pixel (the feet), 
+            // ensuring perfect alignment against trees and buildings anchored to their visual bases.
+            _spriteRenderer.sortingOrder = Mathf.RoundToInt(-_spriteRenderer.bounds.min.y * 10f) + 10001;
         }
     }
 
@@ -137,6 +146,8 @@ public abstract class WorkerBase : MonoBehaviour
 
     protected virtual IEnumerator ExecuteTask(WorkerTask task)
     {
+        _itemPickedUp = false;
+        
         // 1. Walk to source position
         yield return StartCoroutine(WalkTo(task.sourcePosition));
 
@@ -151,6 +162,7 @@ public abstract class WorkerBase : MonoBehaviour
             
             if (task.hideOnPickup && _spriteRenderer != null) _spriteRenderer.enabled = true;
             task.pickupAction.Invoke();
+            _itemPickedUp = true;
         }
 
         // 3. Walk to destination (Now carrying the item)
@@ -194,6 +206,8 @@ public abstract class WorkerBase : MonoBehaviour
         {
             task.completionAction.Invoke(this);
         }
+        
+        _itemPickedUp = false;
     }
 
     // ── Movement ──────────────────────────────────────────────────────
@@ -240,10 +254,26 @@ public abstract class WorkerBase : MonoBehaviour
     private void HandleMovement()
     {
         if (!_isMoving) return;
+        
+        float currentSpeed = moveSpeed;
+        
+        // Apply carry penalties only if we actually picked the item up
+        if (CurrentState == WorkerState.Walking && CurrentTask != null && CurrentTask.targetItem != null && _itemPickedUp)
+        {
+            if (CurrentTask.targetItem.itemType == LumberItemType.Log)
+            {
+                currentSpeed *= logCarrySpeedMultiplier;
+            }
+            else if (CurrentTask.targetItem.itemType == LumberItemType.Board)
+            {
+                currentSpeed *= boardCarrySpeedMultiplier;
+            }
+        }
+
         transform.position = Vector3.MoveTowards(
             transform.position,
             _targetPosition,
-            moveSpeed * Time.deltaTime);
+            currentSpeed * Time.deltaTime);
     }
 
     // ── Idle Wander ───────────────────────────────────────────────────
