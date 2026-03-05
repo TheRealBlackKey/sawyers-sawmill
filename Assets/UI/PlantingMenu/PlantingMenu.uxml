@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:uie="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+    <!-- Style and Assets -->
+    <ui:Style src="../Style/MainTheme.uss" />
+
+    <!-- Root container anchored bottom-right (pushes submenu left to clear HUD) -->
+    <ui:VisualElement name="PlantingMenuOverlay" class="overlay-submenu-root" picking-mode="Ignore">
+        
+        <!-- Main Panel -->
+        <ui:VisualElement name="PlantingMenuPanel" class="sawmill-panel overlay-submenu-panel" style="flex-direction: column;" picking-mode="Position">
+            
+            <!-- Header Section with Title Ribbon and Close Button -->
+            <ui:VisualElement name="HeaderContainer" style="flex-direction: row; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; width: 100%;" picking-mode="Ignore">
+                <ui:VisualElement class="ribbon-banner" picking-mode="Ignore">
+                    <ui:Label text="Plant Forests" class="header-text" />
+                </ui:VisualElement>
+                
+                <!-- Close Button -->
+                <ui:Button name="BtnClose" class="sawmill-button sawmill-button-danger" text="X" style="width: 40px; height: 40px; border-radius: 20px; flex-shrink: 0;" />
+            </ui:VisualElement>
+
+            <!-- Single Call to Action to Launch Painter -->
+            <ui:VisualElement name="PlantingContent" style="flex-grow: 1; align-items: center; justify-content: center; padding: 24px;" picking-mode="Ignore">
+                <ui:Label text="Growing new lumber starts with marking a plot of land for Sawyer to manage." class="sawmill-label" style="white-space: normal; text-align: center; margin-bottom: 24px;" picking-mode="Ignore" />
+                <ui:Button name="BtnPlantZone" text="Paint Forest Zone" class="sawmill-button" style="width: 250px; height: 60px; font-size: 20px;" />
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

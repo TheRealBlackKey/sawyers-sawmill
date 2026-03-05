@@ -2,14 +2,15 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using System;
+using Sawmill.UI;
 
 /// <summary>
 /// The kiln building. Accepts rough sawn boards physically delivered by Sawyer,
 /// dries them over time, and outputs kiln-dried lumber to KilnOutput inventory.
 ///
-/// FIX (Session 4): Removed KilnAutoLoad() coroutine. The kiln no longer
-/// pulls boards from inventory automatically. Sawyer must physically carry
-/// boards here and call LoadBoard(). This makes Sawyer visibly walk to the kiln.
+/// FIX (Session 5): Positions are no longer set in Start() — they are set via
+/// Initialize(worldPosition) which PlacementManager calls immediately after placing.
+/// This prevents the race condition where Start() fires before the GO's position is set.
 ///
 /// InputPosition  — where Sawyer walks to DROP a board off
 /// OutputPosition — where Sawyer walks to PICK UP a dried board
@@ -25,7 +26,6 @@ public class KilnBuilding : MonoBehaviour
 
     [Header("Kiln Settings")]
     [SerializeField] private KilnType kilnType = KilnType.Electric;
-    [SerializeField] private int maxSimultaneousBoards = 1;
 
     // Upgrade-set values
     [HideInInspector] public float dryingSpeedMultiplier = 1f;
@@ -36,23 +36,58 @@ public class KilnBuilding : MonoBehaviour
 
     public bool IsFull => _dryingSlots.Count >= slotCapacity;
 
+    /// <summary>
+    /// Average drying progress (0–1) across all active slots.
+    /// Returns 0 when nothing is drying.
+    /// </summary>
+    public float AverageProgress
+    {
+        get
+        {
+            if (_dryingSlots.Count == 0) return 0f;
+            float total = 0f;
+            foreach (var slot in _dryingSlots)
+                total += slot.elapsed / slot.duration;
+            return total / _dryingSlots.Count;
+        }
+    }
+
     private List<KilnSlot> _dryingSlots = new List<KilnSlot>();
+    private bool _initialized = false;
 
     [Header("Visuals")]
     [SerializeField] private SpriteRenderer _kilnSprite;
     [SerializeField] private ParticleSystem steamParticles;
     [SerializeField] private ParticleSystem smokeParticles;
 
+    // ── Initialization ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called by PlacementManager immediately after placing this building.
+    /// Sets input/output positions from the confirmed world position.
+    /// </summary>
+    public void Initialize(Vector3 worldPosition)
+    {
+        InputPosition  = new Vector3(worldPosition.x - 20f, worldPosition.y, 0f);
+        OutputPosition = new Vector3(worldPosition.x + 20f, worldPosition.y, 0f);
+        _initialized = true;
+
+        Debug.Log($"[Kiln] Initialized at {worldPosition} — Input: {InputPosition}, Output: {OutputPosition}");
+    }
+
     private void Start()
     {
-        // Auto-set positions relative to this building's world position
-        // so they work regardless of where the building was placed
-        float x = transform.position.x;
-        float y = transform.position.y;
-        InputPosition  = new Vector3(x - 20f, y, 0f);
-        OutputPosition = new Vector3(x + 20f, y, 0f);
+        // If not yet initialized via PlacementManager (e.g. placed in scene at edit time),
+        // fall back to deriving positions from transform.
+        if (!_initialized)
+        {
+            Initialize(transform.position);
+        }
 
-        // Only the drying tick runs — NO auto-load loop
+        // Attach the dynamic Kiln Progress Pill overlay
+        var ui = gameObject.AddComponent<KilnUI>();
+        ui.Initialize(this);
+
         StartCoroutine(DryingTick());
     }
 
@@ -146,7 +181,6 @@ public class KilnBuilding : MonoBehaviour
 
         if (!boardLost)
         {
-            // Board goes to KilnOutput — Sawyer will come pick it up
             InventoryManager.Instance?.AddItem(board, InventoryManager.InventoryZone.KilnOutput);
             GameManager.Instance?.RegisterItemProduced(board);
             Debug.Log($"[Kiln] Finished drying {board.DisplayName} — ready for Sawyer to collect.");

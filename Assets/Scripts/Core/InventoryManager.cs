@@ -135,4 +135,53 @@ public class InventoryManager : MonoBehaviour
 
     public int GetTotalItemCount()
         => _inventory.Values.Sum(list => list.Count);
+
+    // ── Save / Load ───────────────────────────────────────────────────
+
+    public void LoadFromSaveData(List<ItemSaveData> savedItems, List<WoodSpeciesData> allSpecies)
+    {
+        if (savedItems == null || allSpecies == null || allSpecies.Count == 0) return;
+
+        // Clear existing inventory state
+        foreach (InventoryZone zone in Enum.GetValues(typeof(InventoryZone)))
+        {
+            _inventory[zone].Clear();
+            OnZoneChanged?.Invoke(zone);
+        }
+
+        int loadedCount = 0;
+        foreach (var data in savedItems)
+        {
+            WoodSpeciesData match = null;
+            foreach (var s in allSpecies)
+            {
+                if (s.name == data.speciesDataName)
+                {
+                    match = s;
+                    break;
+                }
+            }
+
+            if (match == null) continue;
+
+            LumberItem newItem = new LumberItem(
+                match,
+                (ProcessingStage)data.stage,
+                (LumberItemType)data.itemType
+            );
+            newItem.isSpalted = data.isSpalted;
+
+            InventoryZone zone = (InventoryZone)data.zone;
+            _inventory[zone].Add(newItem);
+            loadedCount++;
+        }
+
+        // Notify UI that all zones have updated
+        foreach (InventoryZone zone in Enum.GetValues(typeof(InventoryZone)))
+        {
+            OnZoneChanged?.Invoke(zone);
+        }
+
+        Debug.Log($"[Inventory] Restored {loadedCount} items from save data.");
+    }
 }

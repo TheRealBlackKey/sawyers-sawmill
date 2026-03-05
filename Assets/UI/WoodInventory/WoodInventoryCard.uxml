@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <ui:Style src="../Style/MainTheme.uss" />
+
+    <!-- Main Card Container -->
+    <ui:VisualElement name="CardRoot" class="sawmill-panel wood-card-root">
+
+        <!-- Top Image Section: Split View of Tree / Wood Grain -->
+        <ui:VisualElement name="ImageContainer" class="wood-card-image-container">
+            <!-- Tree Art (Left) -->
+            <ui:VisualElement name="TreeImage" class="wood-card-tree-image" />
+            <!-- Wood Texture/Grain (Right) -->
+            <ui:VisualElement name="WoodImage" class="wood-card-wood-image" />
+        </ui:VisualElement>
+
+        <!-- Wood Name Label (overlapping / immediately below the images) -->
+        <ui:Label name="WoodName" class="unity-label wood-card-name-label" text="Ancient Oak" />
+
+        <!-- Bottom Stats Section -->
+        <ui:VisualElement name="StatsContainer" style="flex-direction: row; justify-content: space-between; width: 100%; padding-top: 4px;">
+            <!-- Hardness Stat -->
+            <ui:VisualElement style="flex-direction: column; align-items: center; width: 50%;">
+                <ui:Label text="Hardness" class="unity-label wood-card-stat-label" />
+                <ui:VisualElement style="flex-direction: row; align-items: center;">
+                    <!-- Placeholder Rock Icon -->
+                    <ui:VisualElement style="width: 12px; height: 12px; background-color: #888; border-radius: 6px; margin-right: 4px;" />
+                    <ui:Label name="HardnessValue" class="unity-label" text="1" style="font-size: 14px; -unity-font-style: bold;" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            
+            <!-- Moisture Stat -->
+            <ui:VisualElement style="flex-direction: column; align-items: center; width: 50%;">
+                <ui:Label text="Moisture" class="unity-label wood-card-stat-label" />
+                <ui:VisualElement style="flex-direction: row; align-items: center;">
+                    <!-- Placeholder Drop Icon -->
+                    <ui:VisualElement style="width: 10px; height: 14px; background-color: #4A90E2; border-radius: 5px; margin-right: 4px;" />
+                    <ui:Label name="MoistureValue" class="unity-label" text="30%" style="font-size: 14px; -unity-font-style: bold;" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+    </ui:VisualElement>
+</ui:UXML>

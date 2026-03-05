@@ -1,0 +1,260 @@
+/* Sawyer's Sawmill - Main Theme */
+/* Color Palette */
+:root {
+    --color-bg-light: #F4EEDF; /* Paper/parchment light bg */
+    --color-bg-dark: #3A2F2B; /* Dark earthy brown */
+    --color-bg-panel: #E8DDCA; /* Soft clay background */
+    --color-border-wood: #5C4033; /* Dark brown ink linework */
+    --color-accent-green: #2C4A3A; /* Pine green */
+    --color-accent-red: #8B3A3A; /* Soft clay red */
+    --color-text-dark: #2B211C;
+    --color-text-light: #F4EEDF;
+    --color-gold: #D4AF37;
+    
+    /* Wobble / hand-drawn feel uses slight uneven padding/margins and rounded borders */
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 16px;
+    
+    --border-width-thin: 2px;
+    --border-width-thick: 4px;
+}
+
+/* Base Typography */
+.unity-label {
+    color: var(--color-text-dark);
+    /* For Unity UI Toolkit, assign font via Unity Editor, but styling via USS */
+    font-size: 18px;
+}
+
+.header-text {
+    font-size: 32px;
+    -unity-font-style: bold;
+    color: var(--color-bg-dark);
+    margin-bottom: 8px;
+}
+
+/* Panels */
+.sawmill-panel {
+    background-color: var(--color-bg-panel);
+    border-color: var(--color-border-wood);
+    border-width: var(--border-width-thick);
+    border-radius: var(--border-radius-lg);
+    padding: 16px;
+    /* Simulate a slight drop shadow */
+    border-bottom-width: 6px;
+    border-right-width: 6px;
+}
+
+/* Buttons */
+.sawmill-button {
+    background-color: var(--color-bg-light);
+    border-color: var(--color-border-wood);
+    border-width: var(--border-width-thin);
+    border-radius: var(--border-radius-md);
+    color: var(--color-text-dark);
+    padding: 8px 16px;
+    font-size: 18px;
+    -unity-font-style: bold;
+    transition-property: background-color, scale;
+    transition-duration: 0.1s;
+    border-bottom-width: 4px;
+}
+
+.sawmill-button:hover {
+    background-color: #FAF6EA;
+    scale: 1.05;
+}
+
+.sawmill-button:active {
+    background-color: #D3C9B5;
+    border-bottom-width: 2px;
+    translate: 0 2px;
+}
+
+/* Primary Action Buttons (e.g. Plant, Build) */
+.sawmill-button-primary {
+    background-color: var(--color-accent-green);
+    color: var(--color-text-light);
+    border-color: #1A2F24;
+}
+
+.sawmill-button-primary:hover {
+    background-color: #385E4A;
+}
+
+/* Destructive / Cancel Buttons */
+.sawmill-button-danger {
+    background-color: var(--color-accent-red);
+    color: var(--color-text-light);
+    border-color: #5C2222;
+}
+
+/* Stats Container (Gold, Rep) */
+.stat-container {
+    flex-direction: row;
+    align-items: center;
+    background-color: var(--color-bg-dark);
+    border-radius: var(--border-radius-md);
+    padding: 4px 12px;
+    margin-right: 16px;
+}
+
+.stat-icon {
+    width: 24px;
+    height: 24px;
+    margin-right: 8px;
+}
+
+.stat-text {
+    color: var(--color-text-light);
+    font-size: 20px;
+    -unity-font-style: bold;
+}
+
+/* Wood Inventory Specific */
+.ribbon-banner {
+    background-color: var(--color-bg-light);
+    border-width: var(--border-width-thin);
+    border-color: var(--color-border-wood);
+    padding: 8px 32px;
+    border-radius: 4px;
+}
+
+.wood-card-root {
+    width: 200px;
+    height: 180px;
+    margin: 12px;
+    padding: 8px;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: var(--border-radius-sm);
+}
+
+.wood-card-image-container {
+    flex-direction: row;
+    height: 110px;
+    width: 100%;
+    border-radius: var(--border-radius-sm);
+    border-width: var(--border-width-thin);
+    border-color: var(--color-border-wood);
+    overflow: hidden;
+}
+
+.wood-card-tree-image {
+    flex-grow: 1;
+    width: 50%;
+    background-color: var(--color-bg-light);
+    border-right-width: var(--border-width-thin);
+    border-color: var(--color-border-wood);
+}
+
+.wood-card-wood-image {
+    flex-grow: 1;
+    width: 50%;
+    background-color: var(--color-bg-dark);
+}
+
+.wood-card-name-label {
+    margin-top: 4px;
+    -unity-font-style: bold;
+    font-size: 16px;
+    border-bottom-width: 1px;
+    border-color: var(--color-border-wood);
+}
+
+.wood-card-stat-label {
+    font-size: 10px;
+    color: var(--color-border-wood);
+}
+
+/* Sub-Menu Shared / Specifics */
+.planting-menu-image {
+    width: 100px;
+    height: 100px;
+    background-color: var(--color-bg-dark);
+    border-radius: var(--border-radius-sm);
+    border-color: var(--color-border-wood);
+    border-width: var(--border-width-thin);
+    margin-right: 16px;
+}
+
+.furniture-creator-left-panel {
+    width: 45%;
+    margin-right: 16px;
+    border-right-width: var(--border-width-thick);
+    border-color: var(--color-border-wood);
+    padding-right: 16px;
+    flex-direction: column;
+}
+
+.furniture-creator-component-btn {
+    height: 30px;
+    padding: 4px;
+    background-color: var(--color-bg-dark);
+    color: var(--color-text-light);
+}
+
+.furniture-preview-area {
+    width: 300px;
+    height: 300px;
+    background-color: var(--color-bg-light);
+    border-width: var(--border-width-thick);
+    border-radius: var(--border-radius-lg);
+    border-color: var(--color-border-wood);
+    align-items: center;
+    justify-content: center;
+}
+
+.furniture-craft-footer {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--color-bg-dark);
+    color: var(--color-text-light);
+    margin-top: 16px;
+}
+
+.main-hud-icon-gold {
+    background-color: var(--color-gold);
+    border-radius: 12px;
+}
+
+.main-hud-system-message {
+    -unity-font-style: italic;
+    color: var(--color-border-wood);
+}
+
+/* --- OVERLAY REDESIGN LAYOUTS --- */
+
+/* The HUD becomes a vertical bar anchored to the bottom right */
+.overlay-hud-root {
+    flex-grow: 1;
+    justify-content: flex-end; 
+    align-items: flex-end; /* Anchor right */
+}
+
+.overlay-hud-panel {
+    width: 220px; /* Smaller width */
+    margin: 16px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    border-bottom-width: 6px;
+}
+
+/* Sub-menus snap to bottom-right, but pushed leftward to clear the HUD */
+.overlay-submenu-root {
+    flex-grow: 1;
+    justify-content: flex-end;
+    align-items: flex-end; 
+}
+
+.overlay-submenu-panel {
+    margin: 16px;
+    margin-right: 250px; /* Push left past the 220px HUD + 16px padding */
+    width: 450px; /* Fixed much smaller size */
+    height: 350px; /* Fixed much smaller height */
+}

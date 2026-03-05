@@ -1,68 +1,77 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using System.Collections.Generic;
+using System.Reflection;
 
 /// <summary>
-/// Handles the building placement flow.
-/// Player selects a building from BuildMenu → ghost preview follows mouse
-/// → turns red on invalid position → clicks to place and deduct gold.
+/// Handles the building placement flow using the WorldGrid system.
+///
+/// PLACEMENT FLOW:
+///   1. Player selects a building from BuildMenu
+///   2. Ghost preview snaps to grid cells and follows mouse
+///   3. Ghost turns red if the footprint is not buildable
+///   4. Left-click to confirm, right-click / Escape to cancel
+///
+/// GRID INTEGRATION:
+///   Buildings have a gridFootprint (width × height in cells) defined in BuildingData.
+///   PlacementManager queries WorldGrid.IsBuildable() for validation and calls
+///   WorldGrid.Occupy() after confirmation. WorldGrid is the single source of truth
+///   for what is placed where — ObstacleRegistry is no longer used.
+///
+/// INITIALIZE PATTERN:
+///   After attaching a script via AddComponent, PlacementManager calls
+///   Initialize(Vector3) on the component if the method exists, before Start() runs.
 /// </summary>
 public class PlacementManager : MonoBehaviour
 {
     public static PlacementManager Instance { get; private set; }
 
     [Header("Ghost Preview")]
-    [SerializeField] private Color validColor = new Color(1f, 1f, 1f, 0.6f);
+    [SerializeField] private Color validColor   = new Color(1f, 1f, 1f, 0.55f);
     [SerializeField] private Color invalidColor = new Color(1f, 0.2f, 0.2f, 0.6f);
-
-    [Header("Placement Settings")]
-    [SerializeField] private float groundY = -60f;      // Y position buildings snap to
-    [SerializeField] private float snapIncrement = 5f;  // Snap to grid in world units
 
     [Header("References")]
     [SerializeField] private Camera _camera;
 
     // ── State ─────────────────────────────────────────────────────────
     public bool IsPlacing { get; private set; } = false;
-    private BuildingData _selectedBuilding;
-    private GameObject _ghostObject;
-    private SpriteRenderer _ghostRenderer;
-    private bool _isValidPosition = false;
 
-    // Track all placed buildings
+    private BuildingData   _selectedBuilding;
+    private GameObject     _ghostObject;
+    private SpriteRenderer _ghostRenderer;
+    private bool           _isValidPosition;
+    private Vector2Int     _ghostGridPos;   // top-left grid cell of the ghost footprint
+
+    private List<GameObject> _radiusGhostCells = new List<GameObject>();
+
     private List<PlacedBuilding> _placedBuildings = new List<PlacedBuilding>();
 
     public static event System.Action<PlacedBuilding> OnBuildingPlaced;
-    public static event System.Action OnPlacementCancelled;
+    public static event System.Action                 OnPlacementCancelled;
 
+    // ── Lifecycle ─────────────────────────────────────────────────────
     private void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
-
-        if (_camera == null)
-            _camera = Camera.main;
+        if (_camera == null) _camera = Camera.main;
     }
 
     private void Update()
     {
         if (!IsPlacing) return;
-
         UpdateGhostPosition();
         HandlePlacementInput();
     }
 
     // ── Public API ────────────────────────────────────────────────────
 
-    /// <summary>Enter placement mode for a specific building type.</summary>
     public void BeginPlacement(BuildingData buildingData)
     {
         if (buildingData == null) return;
 
-        // Check if player can afford it
         if (GameManager.Instance != null && GameManager.Instance.Gold < buildingData.goldCost)
         {
-            Debug.Log($"[Placement] Cannot afford {buildingData.buildingName} (costs {buildingData.goldCost} gold)");
             HUDManager.Instance?.ShowNotification(
                 "Can't Afford",
                 $"Need ${buildingData.goldCost} to build {buildingData.buildingName}",
@@ -70,7 +79,6 @@ public class PlacementManager : MonoBehaviour
             return;
         }
 
-        // Check unlock requirements
         if (!MeetsUnlockRequirements(buildingData))
         {
             HUDManager.Instance?.ShowNotification(
@@ -81,16 +89,16 @@ public class PlacementManager : MonoBehaviour
         }
 
         _selectedBuilding = buildingData;
-        IsPlacing = true;
+        IsPlacing         = true;
         CreateGhost(buildingData);
-
-        Debug.Log($"[Placement] Placing {buildingData.buildingName} — click to confirm, right-click to cancel");
+        Debug.Log($"[Placement] Placing {buildingData.buildingName} " +
+                  $"({buildingData.gridWidth}×{buildingData.gridHeight} cells) — " +
+                  $"click to confirm, right-click to cancel.");
     }
 
-    /// <summary>Cancel the current placement.</summary>
     public void CancelPlacement()
     {
-        IsPlacing = false;
+        IsPlacing         = false;
         _selectedBuilding = null;
         DestroyGhost();
         OnPlacementCancelled?.Invoke();
@@ -102,47 +110,64 @@ public class PlacementManager : MonoBehaviour
     {
         DestroyGhost();
 
-        _ghostObject = new GameObject("PlacementGhost");
-        _ghostRenderer = _ghostObject.AddComponent<SpriteRenderer>();
-        _ghostRenderer.sprite = data.previewSprite != null ? data.previewSprite : data.builtSprite;
-        _ghostRenderer.sortingOrder = 10;
-        _ghostRenderer.color = validColor;
+        _ghostObject                        = new GameObject("PlacementGhost");
+        _ghostRenderer                      = _ghostObject.AddComponent<SpriteRenderer>();
+        _ghostRenderer.sprite               = data.previewSprite != null ? data.previewSprite : data.builtSprite;
+        _ghostRenderer.sortingOrder         = 10;
+        _ghostRenderer.color                = validColor;
 
-        // Scale ghost to match footprint
+        ScaleGhostToFootprint(data);
+    }
+
+    private void ScaleGhostToFootprint(BuildingData data)
+    {
+        if (_ghostObject == null || WorldGrid.Instance == null) return;
+
+        float targetW = data.gridWidth  * WorldGrid.Instance.CellSize;
+        float targetH = data.gridHeight * WorldGrid.Instance.CellSize;
+
         if (_ghostRenderer.sprite != null)
         {
-            float scaleX = data.footprintSize.x / (_ghostRenderer.sprite.rect.width / _ghostRenderer.sprite.pixelsPerUnit);
-            float scaleY = data.footprintSize.y / (_ghostRenderer.sprite.rect.height / _ghostRenderer.sprite.pixelsPerUnit);
-            _ghostObject.transform.localScale = new Vector3(scaleX, scaleY, 1f);
+            float spriteW = _ghostRenderer.sprite.rect.width  / _ghostRenderer.sprite.pixelsPerUnit;
+            float spriteH = _ghostRenderer.sprite.rect.height / _ghostRenderer.sprite.pixelsPerUnit;
+            _ghostObject.transform.localScale = new Vector3(targetW / spriteW, targetH / spriteH, 1f);
         }
         else
         {
-            // No sprite — use a colored quad placeholder
-            _ghostObject.transform.localScale = new Vector3(
-                data.footprintSize.x * 0.01f,
-                data.footprintSize.y * 0.01f, 1f);
+            _ghostObject.transform.localScale = new Vector3(targetW * 0.01f, targetH * 0.01f, 1f);
         }
     }
 
     private void UpdateGhostPosition()
     {
-        if (_ghostObject == null || _camera == null) return;
+        if (_ghostObject == null || _camera == null || WorldGrid.Instance == null) return;
 
         var mouse = Mouse.current;
         if (mouse == null) return;
 
-        // Convert mouse screen position to world position
-        Vector3 mouseScreen = new Vector3(mouse.position.value.x, mouse.position.value.y, 0f);
-        Vector3 worldPos = _camera.ScreenToWorldPoint(mouseScreen);
+        // Convert mouse → world → nearest grid cell
+        Vector3 mouseWorld = _camera.ScreenToWorldPoint(
+            new Vector3(mouse.position.value.x, mouse.position.value.y, 0f));
 
-        // Snap X to grid, lock Y to ground level
-        float snappedX = Mathf.Round(worldPos.x / snapIncrement) * snapIncrement;
-        Vector3 ghostPos = new Vector3(snappedX, groundY, -0.5f);
-        _ghostObject.transform.position = ghostPos;
+        var grid = WorldGrid.Instance.WorldToGrid(mouseWorld);
+        if (!WorldGrid.Instance.InBounds(grid.x, grid.y)) return;
 
-        // Check validity
-        _isValidPosition = CheckPlacementValid(new Vector2(snappedX, groundY), _selectedBuilding);
+        _ghostGridPos = grid;
+
+        // World position = center of the footprint
+        float cellSize = WorldGrid.Instance.CellSize;
+        float cx = WorldGrid.Instance.GridToWorld(grid.x, grid.y).x
+                   + (_selectedBuilding.gridWidth  - 1) * cellSize * 0.5f;
+        float cy = WorldGrid.Instance.GridToWorld(grid.x, grid.y).y
+                   - (_selectedBuilding.gridHeight - 1) * cellSize * 0.5f;
+
+        _ghostObject.transform.position = new Vector3(cx, cy, -0.5f);
+
+        _isValidPosition    = WorldGrid.Instance.IsBuildable(
+            grid.x, grid.y, _selectedBuilding.gridWidth, _selectedBuilding.gridHeight);
         _ghostRenderer.color = _isValidPosition ? validColor : invalidColor;
+
+        RefreshRadiusGhostCells();
     }
 
     private void HandlePlacementInput()
@@ -150,59 +175,94 @@ public class PlacementManager : MonoBehaviour
         var mouse = Mouse.current;
         if (mouse == null) return;
 
-        // Left click — confirm placement
         if (mouse.leftButton.wasPressedThisFrame && _isValidPosition)
-        {
             ConfirmPlacement();
-        }
 
-        // Right click — cancel
         if (mouse.rightButton.wasPressedThisFrame)
-        {
             CancelPlacement();
-        }
 
-        // Escape — cancel
         var keyboard = Keyboard.current;
         if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
-        {
             CancelPlacement();
-        }
     }
 
     private void DestroyGhost()
     {
-        if (_ghostObject != null)
-            Destroy(_ghostObject);
-        _ghostObject = null;
+        if (_ghostObject != null) Destroy(_ghostObject);
+        _ghostObject   = null;
         _ghostRenderer = null;
+
+        ClearRadiusGhostCells();
     }
 
-    // ── Placement Validation ──────────────────────────────────────────
-
-    private bool CheckPlacementValid(Vector2 center, BuildingData data)
+    private void RefreshRadiusGhostCells()
     {
-        if (ObstacleRegistry.Instance == null) return true;
+        ClearRadiusGhostCells();
 
-        // Add a small padding around footprint for breathing room
-        Vector2 paddedSize = data.footprintSize + new Vector2(10f, 5f);
+        if (WorldGrid.Instance == null || _selectedBuilding == null || _selectedBuilding.effectRadius <= 0)
+            return;
 
-        if (ObstacleRegistry.Instance.IsBlocked(center, paddedSize))
-            return false;
+        int r = _selectedBuilding.effectRadius;
+        int gx = _ghostGridPos.x;
+        int gy = _ghostGridPos.y;
+        int gw = _selectedBuilding.gridWidth;
+        int gh = _selectedBuilding.gridHeight;
 
-        // Check minimum distance from sawmill if required
-        if (data.minDistanceFromSawmill > 0f)
+        // The exact center point of the footprint in grid terms
+        float centerGridX = gx + (gw - 1) / 2f;
+        float centerGridY = gy + (gh - 1) / 2f;
+
+        // Radius boundaries
+        int minX = Mathf.FloorToInt(centerGridX - r);
+        int maxX = Mathf.CeilToInt(centerGridX + r);
+        int minY = Mathf.FloorToInt(centerGridY - r);
+        int maxY = Mathf.CeilToInt(centerGridY + r);
+
+        float cs = WorldGrid.Instance.CellSize;
+        Color radiusColor = new Color(0.3f, 0.85f, 0.3f, 0.25f); // Transparent green
+
+        for (int x = minX; x <= maxX; x++)
         {
-            var sawmill = FindFirstObjectByType<SawmillBuilding>();
-            if (sawmill != null)
+            for (int y = minY; y <= maxY; y++)
             {
-                float dist = Mathf.Abs(center.x - sawmill.transform.position.x);
-                if (dist < data.minDistanceFromSawmill)
-                    return false;
+                if (!WorldGrid.Instance.InBounds(x, y)) continue;
+
+                // Don't draw the radius effect directly *under* the building itself
+                if (x >= gx && x < gx + gw && y >= gy && y < gy + gh) continue;
+
+                Vector3 worldPos = WorldGrid.Instance.GridToWorld(x, y, -0.1f);
+
+                var ghost = new GameObject($"RadiusCell_{x}_{y}");
+                ghost.transform.SetParent(this.transform);
+                ghost.transform.position = worldPos;
+
+                var sr = ghost.AddComponent<SpriteRenderer>();
+                sr.color = radiusColor;
+                sr.sortingOrder = 9; // Below the building ghost (10)
+                sr.sprite = GetWhiteSquareSprite();
+                ghost.transform.localScale = new Vector3(cs * 0.92f, cs * 0.92f, 1f);
+
+                _radiusGhostCells.Add(ghost);
             }
         }
+    }
 
-        return true;
+    private void ClearRadiusGhostCells()
+    {
+        foreach (var g in _radiusGhostCells)
+            if (g != null) Destroy(g);
+        _radiusGhostCells.Clear();
+    }
+
+    private static Sprite _whiteSquareSprite;
+    private static Sprite GetWhiteSquareSprite()
+    {
+        if (_whiteSquareSprite != null) return _whiteSquareSprite;
+        var tex = new Texture2D(1, 1);
+        tex.SetPixel(0, 0, Color.white);
+        tex.Apply();
+        _whiteSquareSprite = Sprite.Create(tex, new Rect(0, 0, 1, 1), new Vector2(0.5f, 0.5f), 1f);
+        return _whiteSquareSprite;
     }
 
     // ── Confirm Placement ─────────────────────────────────────────────
@@ -210,69 +270,144 @@ public class PlacementManager : MonoBehaviour
     private void ConfirmPlacement()
     {
         if (_selectedBuilding == null || _ghostObject == null) return;
+        if (WorldGrid.Instance == null) return;
 
-        Vector2 placedCenter = new Vector2(_ghostObject.transform.position.x, groundY);
+        int gx = _ghostGridPos.x;
+        int gy = _ghostGridPos.y;
+        int gw = _selectedBuilding.gridWidth;
+        int gh = _selectedBuilding.gridHeight;
 
-        // Deduct gold
-        if (GameManager.Instance != null)
-            GameManager.Instance.SpendGold((float)_selectedBuilding.goldCost);
-
-        // Create the actual building GameObject
-        var buildingGO = new GameObject(_selectedBuilding.buildingName);
-        buildingGO.transform.position = new Vector3(placedCenter.x, placedCenter.y, 0f);
-
-        // Add sprite renderer with built sprite
-        var sr = buildingGO.AddComponent<SpriteRenderer>();
-        sr.sprite = _selectedBuilding.builtSprite;
-        sr.sortingOrder = 1;
-
-        // Scale to footprint
-        if (sr.sprite != null)
+        // Double-check validity (mouse may have moved between UpdateGhost and click)
+        if (!WorldGrid.Instance.IsBuildable(gx, gy, gw, gh))
         {
-            float scaleX = _selectedBuilding.footprintSize.x / (sr.sprite.rect.width / sr.sprite.pixelsPerUnit);
-            float scaleY = _selectedBuilding.footprintSize.y / (sr.sprite.rect.height / sr.sprite.pixelsPerUnit);
-            buildingGO.transform.localScale = new Vector3(scaleX, scaleY, 1f);
+            Debug.LogWarning("[Placement] Placement invalid at confirm time — ignoring.");
+            return;
         }
 
-        // Register with ObstacleRegistry so future buildings can't overlap it
-        ObstacleRegistry.Instance?.RegisterBounds(
-            placedCenter,
-            _selectedBuilding.footprintSize,
-            ObstacleType.Building,
-            buildingGO
-        );
+        // World position = center of the footprint, at z=0
+        Vector3 worldCenter = new Vector3(
+            _ghostObject.transform.position.x,
+            _ghostObject.transform.position.y,
+            0f);
 
-        // Attach the building's script component if specified
+        // Deduct gold
+        GameManager.Instance?.SpendGold((float)_selectedBuilding.goldCost);
+
+        // ── Create the building GameObject ────────────────────────────
+        var buildingGO = new GameObject(_selectedBuilding.buildingName);
+        buildingGO.transform.position = worldCenter;
+
+        var sr             = buildingGO.AddComponent<SpriteRenderer>();
+        sr.sprite          = _selectedBuilding.builtSprite;
+        sr.sortingOrder    = 2;
+
+        // Scale sprite to fill its grid footprint exactly
+        if (sr.sprite != null)
+        {
+            float targetW = gw * WorldGrid.Instance.CellSize;
+            float targetH = gh * WorldGrid.Instance.CellSize;
+            float spriteW = sr.sprite.rect.width  / sr.sprite.pixelsPerUnit;
+            float spriteH = sr.sprite.rect.height / sr.sprite.pixelsPerUnit;
+            buildingGO.transform.localScale = new Vector3(targetW / spriteW, targetH / spriteH, 1f);
+        }
+
+        // Register in WorldGrid — this is now the single source of truth
+        WorldGrid.Instance.Occupy(gx, gy, gw, gh, CellType.Building, buildingGO, walkable: false);
+
+        // ── Attach building script ────────────────────────────────────
         if (!string.IsNullOrEmpty(_selectedBuilding.scriptTypeName))
         {
             System.Type scriptType = System.Type.GetType(_selectedBuilding.scriptTypeName);
             if (scriptType != null)
             {
-                buildingGO.AddComponent(scriptType);
-                Debug.Log($"[Placement] Attached {_selectedBuilding.scriptTypeName} to {_selectedBuilding.buildingName}");
+                var component  = buildingGO.AddComponent(scriptType);
+                var initMethod = scriptType.GetMethod(
+                    "Initialize",
+                    BindingFlags.Public | BindingFlags.Instance,
+                    null,
+                    new System.Type[] { typeof(Vector3) },
+                    null);
+
+                if (initMethod != null)
+                {
+                    initMethod.Invoke(component, new object[] { worldCenter });
+                    Debug.Log($"[Placement] Called Initialize({worldCenter}) on {_selectedBuilding.scriptTypeName}");
+                }
             }
             else
             {
-                Debug.LogWarning($"[Placement] Could not find script type: {_selectedBuilding.scriptTypeName}");
+                Debug.LogWarning($"[Placement] Script type not found: {_selectedBuilding.scriptTypeName}");
             }
         }
 
-        // Track it
+        // Track placement
         var placed = new PlacedBuilding
         {
-            data = _selectedBuilding,
+            data        = _selectedBuilding,
             worldObject = buildingGO,
-            center = placedCenter
+            gridOrigin  = new Vector2Int(gx, gy),
+            center      = new Vector2(worldCenter.x, worldCenter.y)
         };
         _placedBuildings.Add(placed);
         OnBuildingPlaced?.Invoke(placed);
 
-        Debug.Log($"[Placement] Placed {_selectedBuilding.buildingName} at {placedCenter}");
+        Debug.Log($"[Placement] Placed {_selectedBuilding.buildingName} at grid ({gx},{gy}), world {worldCenter}");
 
-        // Clean up
-        IsPlacing = false;
-        DestroyGhost();
+        IsPlacing         = false;
         _selectedBuilding = null;
+        DestroyGhost();
+    }
+
+    // ── Save / Load ───────────────────────────────────────────────────
+
+    public void LoadFromSaveData(List<BuildingSaveData> savedBuildings, List<BuildingData> allBuildings)
+    {
+        if (savedBuildings == null || allBuildings == null || allBuildings.Count == 0) return;
+
+        int loadedCount = 0;
+        foreach (var savedData in savedBuildings)
+        {
+            // Find the matching ScriptableObject
+            BuildingData match = null;
+            foreach (var b in allBuildings)
+            {
+                if (b.name == savedData.buildingDataName)
+                {
+                    match = b;
+                    break;
+                }
+            }
+
+            if (match == null)
+            {
+                Debug.LogWarning($"[Placement] Could not find BuildingData '{savedData.buildingDataName}'. Skipping.");
+                continue;
+            }
+
+            // Fake the ghost setup to reuse ConfirmPlacement logic
+            _selectedBuilding = match;
+            _ghostGridPos     = new Vector2Int(savedData.gridX, savedData.gridY);
+            
+            // Re-instantiate a dummy ghost just so ConfirmPlacement can read its position
+            _ghostObject = new GameObject("DummyGhost");
+            float cx = WorldGrid.Instance.GridToWorld(savedData.gridX, savedData.gridY).x
+                       + (match.gridWidth  - 1) * WorldGrid.Instance.CellSize * 0.5f;
+            float cy = WorldGrid.Instance.GridToWorld(savedData.gridX, savedData.gridY).y
+                       - (match.gridHeight - 1) * WorldGrid.Instance.CellSize * 0.5f;
+            _ghostObject.transform.position = new Vector3(cx, cy, 0f);
+
+            // Temporarily suppress gold so loading doesn't bankrupt the player
+            int originalCost = match.goldCost;
+            match.goldCost = 0;
+            
+            ConfirmPlacement();
+            
+            // Restore actual cost
+            match.goldCost = originalCost;
+            loadedCount++;
+        }
+
+        Debug.Log($"[Placement] Rebuilt {loadedCount} buildings from save data.");
     }
 
     // ── Unlock Requirements ───────────────────────────────────────────
@@ -280,18 +415,10 @@ public class PlacementManager : MonoBehaviour
     private bool MeetsUnlockRequirements(BuildingData data)
     {
         if (GameManager.Instance == null) return true;
-
-        // Reputation check
-        if (data.reputationRequired > 0 && GameManager.Instance.Reputation < data.reputationRequired)
-            return false;
-
-        // Required buildings check
+        if (data.reputationRequired > 0 &&
+            GameManager.Instance.Reputation < data.reputationRequired) return false;
         foreach (var req in data.requiredBuildings)
-        {
-            bool found = _placedBuildings.Exists(p => p.data == req);
-            if (!found) return false;
-        }
-
+            if (!_placedBuildings.Exists(p => p.data == req)) return false;
         return true;
     }
 
@@ -303,6 +430,7 @@ public class PlacementManager : MonoBehaviour
 public class PlacedBuilding
 {
     public BuildingData data;
-    public GameObject worldObject;
-    public Vector2 center;
+    public GameObject   worldObject;
+    public Vector2Int   gridOrigin;   // top-left grid cell
+    public Vector2      center;       // world-space center
 }

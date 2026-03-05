@@ -20,13 +20,9 @@ public class DesktopOverlay : MonoBehaviour
     public static DesktopOverlay Instance { get; private set; }
 
     [Header("Overlay Settings")]
-    [SerializeField] private bool startAsOverlay = true;
-    [SerializeField] private int overlayHeight = 200;       // Pixels tall for the strip
-    [SerializeField] private OverlayPosition overlayPosition = OverlayPosition.Bottom;
     [SerializeField] private bool clickThroughWhenIdle = true;
 
     private bool _isOverlayMode = false;
-    private bool _isClickThrough = false;
 
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
     // ── Windows API ───────────────────────────────────────────────────
@@ -73,8 +69,7 @@ public class DesktopOverlay : MonoBehaviour
     {
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
         _windowHandle = GetActiveWindow();
-        if (startAsOverlay)
-            EnableOverlayMode();
+        EnableOverlayMode();
 #else
         Debug.Log("[DesktopOverlay] Overlay mode only works in standalone Windows build.");
 #endif
@@ -111,7 +106,6 @@ public class DesktopOverlay : MonoBehaviour
         SetWindowLong(_windowHandle, GWL_EXSTYLE, style);
 
         _isOverlayMode = false;
-        _isClickThrough = false;
 #endif
     }
 
@@ -131,7 +125,6 @@ public class DesktopOverlay : MonoBehaviour
             style &= ~(uint)WS_EX_TRANSPARENT;
 
         SetWindowLong(_windowHandle, GWL_EXSTYLE, style);
-        _isClickThrough = enabled;
 #endif
     }
 
@@ -141,14 +134,14 @@ public class DesktopOverlay : MonoBehaviour
         int screenW = Display.main.systemWidth;
         int screenH = Display.main.systemHeight;
         int windowW = screenW;
-        int windowH = overlayHeight;
+        int windowH = 200;
 
         int posX = 0;
         int posY = overlayPosition switch
         {
-            OverlayPosition.Bottom => screenH - overlayHeight,
+            OverlayPosition.Bottom => screenH - 200,
             OverlayPosition.Top    => 0,
-            _ => screenH - overlayHeight
+            _ => screenH - 200
         };
 
         Screen.SetResolution(windowW, windowH, FullScreenMode.Windowed);

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:uie="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+    <!-- Link to the main theme -->
+    <ui:Style src="../Style/MainTheme.uss" />
+
+    <!-- Root container for the entire screen overlay. Anchored bottom right. -->
+    <ui:VisualElement name="ScreenRoot" class="overlay-hud-root" picking-mode="Ignore">
+        
+        <!-- The Vertical HUD panel on the side -->
+        <ui:VisualElement name="HUDStrip" class="sawmill-panel overlay-hud-panel" picking-mode="Position">
+            
+            <!-- Top Box: Stats (Gold & Reputation) -->
+            <ui:VisualElement name="StatsArea" style="flex-direction: column; align-items: stretch; margin-bottom: 24px;">
+                <ui:VisualElement name="GoldStat" class="stat-container" tooltip="Current Gold" style="margin-right: 0; margin-bottom: 8px;">
+                    <!-- Placeholder for coin icon -->
+                    <ui:VisualElement class="stat-icon main-hud-icon-gold" />
+                    <ui:Label name="GoldLabel" class="stat-text" text="$1,250" />
+                </ui:VisualElement>
+                
+                <ui:VisualElement name="RepStat" class="stat-container" tooltip="Mill Reputation" style="margin-right: 0;">
+                    <!-- Placeholder for star/rep icon -->
+                    <ui:VisualElement class="stat-icon" />
+                    <ui:Label name="RepLabel" class="stat-text" text="15 Rep" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Center: Game/System Messages -->
+            <ui:VisualElement name="MessageArea" style="align-items: center; justify-content: center; margin-bottom: 24px; padding: 12px; border-width: 1px; border-color: #5C4033; border-radius: 8px;">
+                <ui:Label name="SystemMessageLabel" class="unity-label main-hud-system-message" text="Sawyer is hauling Pine Logs..." style="white-space: normal; text-align: center;" />
+            </ui:VisualElement>
+
+            <!-- Bottom: Navigation Buttons Stacked -->
+            <ui:VisualElement name="NavArea" style="flex-direction: column; align-items: stretch;">
+                <ui:Button name="BtnInventory" class="sawmill-button" text="Wood Inventory" style="margin-bottom: 8px;" />
+                <ui:Button name="BtnBuild" class="sawmill-button" text="Build Menu" style="margin-bottom: 8px;"  />
+                <ui:Button name="BtnPlant" class="sawmill-button sawmill-button-primary" text="Plant Forests" style="margin-bottom: 8px;" />
+                <ui:Button name="BtnFurniture" class="sawmill-button" text="Furniture Creator" />
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

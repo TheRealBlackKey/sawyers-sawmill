@@ -1,0 +1,112 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8cb02e803a9dd894a92d4c9130711cef, type: 3}
+  m_Name: WSD_Walnut
+  m_EditorClassIdentifier: Assembly-CSharp::WoodSpeciesData
+  speciesName: Black Walnut
+  scientificName: Pinus strobus
+  flavorText: The most prized American hardwood. Rich chocolate tones with a natural
+    lustre that needs no stain. Worth every penny.
+  treeSpritesSapling:
+  - {fileID: -6876311226436168264, guid: 0de817c34869bbe4b84cf237142ddead, type: 3}
+  - {fileID: -4711255957245004701, guid: 0de817c34869bbe4b84cf237142ddead, type: 3}
+  - {fileID: 9160771338314841793, guid: 0de817c34869bbe4b84cf237142ddead, type: 3}
+  - {fileID: -8541195138436427444, guid: 0de817c34869bbe4b84cf237142ddead, type: 3}
+  - {fileID: -4729829400533713209, guid: 0de817c34869bbe4b84cf237142ddead, type: 3}
+  treeSpritesJuvenile:
+  - {fileID: -1693651037284519318, guid: a9a8de43743a91a4899665494716a5c4, type: 3}
+  - {fileID: -3838323059243076623, guid: a9a8de43743a91a4899665494716a5c4, type: 3}
+  - {fileID: -6210983470006669224, guid: a9a8de43743a91a4899665494716a5c4, type: 3}
+  - {fileID: -692892810801446008, guid: a9a8de43743a91a4899665494716a5c4, type: 3}
+  - {fileID: 6848306492126513749, guid: a9a8de43743a91a4899665494716a5c4, type: 3}
+  treeSpritesMature:
+  - {fileID: 7533144499553888880, guid: c89de5d11e3f3fb4e94ca19598b58675, type: 3}
+  - {fileID: 7533144499553888880, guid: c89de5d11e3f3fb4e94ca19598b58675, type: 3}
+  - {fileID: 7533144499553888880, guid: c89de5d11e3f3fb4e94ca19598b58675, type: 3}
+  - {fileID: 7533144499553888880, guid: c89de5d11e3f3fb4e94ca19598b58675, type: 3}
+  - {fileID: 7533144499553888880, guid: c89de5d11e3f3fb4e94ca19598b58675, type: 3}
+  treeSpriteReady: {fileID: 0}
+  logSprite: {fileID: 0}
+  boardSprite: {fileID: 0}
+  barkColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  heartwoodColor: {r: 0.9, g: 0.8, b: 0.6, a: 1}
+  growthTimeSeconds: 150
+  regrowthMultiplier: 0
+  logsPerTree: 1
+  unlockCost: 200
+  totalLogsToUnlock: 80
+  requiresReplanting: 1
+  maxHarvestCycles: 3
+  saplingCost: 8
+  valuePerLogRaw: 2
+  valuePerBoardRoughSawn: 5
+  valuePerBoardKilnDried: 8
+  valuePerBoardSurfaced: 80
+  kilnDryTimeSeconds: 120
+  surfaceTimeSeconds: 30
+  millingTimePerLog: 20
+  boardsPerLog: 3
+  grainVariants:
+  - variantName: Straight Grain
+    description: 
+    boardSprite: {fileID: 0}
+    dropChance: 0
+    valueMultiplier: 0
+    isUnlocked: 1
+    boardsToUnlock: 0
+    rarityTier: 0
+    grainTintColor: {r: 0, g: 0, b: 0, a: 0}
+    triggerRevealEffect: 0
+  - variantName: Wavy Grain
+    description: 
+    boardSprite: {fileID: 0}
+    dropChance: 0.25
+    valueMultiplier: 1.5
+    isUnlocked: 1
+    boardsToUnlock: 5
+    rarityTier: 1
+    grainTintColor: {r: 0, g: 0, b: 0, a: 0}
+    triggerRevealEffect: 0
+  - variantName: Crotch Figure
+    description: 
+    boardSprite: {fileID: 0}
+    dropChance: 0.12
+    valueMultiplier: 2.5
+    isUnlocked: 1
+    boardsToUnlock: 30
+    rarityTier: 2
+    grainTintColor: {r: 0, g: 0, b: 0, a: 0}
+    triggerRevealEffect: 0
+  - variantName: Curly Walnut
+    description: 
+    boardSprite: {fileID: 0}
+    dropChance: 0.08
+    valueMultiplier: 3.2
+    isUnlocked: 1
+    boardsToUnlock: 30
+    rarityTier: 2
+    grainTintColor: {r: 0, g: 0, b: 0, a: 0}
+    triggerRevealEffect: 0
+  - variantName: Burl Figure
+    description: 
+    boardSprite: {fileID: 0}
+    dropChance: 0.05
+    valueMultiplier: 5
+    isUnlocked: 1
+    boardsToUnlock: 60
+    rarityTier: 3
+    grainTintColor: {r: 0, g: 0, b: 0, a: 0}
+    triggerRevealEffect: 0
+  isAromatic: 0
+  isSteamBendable: 0
+  isExotic: 0
+  hardness: 0.5

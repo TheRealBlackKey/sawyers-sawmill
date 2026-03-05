@@ -16,11 +16,18 @@ public class SawmillBuilding : MonoBehaviour
 
     [Header("Base Stats")]
     [SerializeField] private float baseMillingTime = 20f;
-    [SerializeField] private int baseBoardsPerLog = 4;
 
     [Header("Input/Output Offsets from building center")]
     [SerializeField] private float inputOffsetX = -40f;
     [SerializeField] private float outputOffsetX = 40f;
+
+    [Header("Passive Sales (Early Game Income)")]
+    [Tooltip("If true, the sawmill will periodically sell an item from its output (or input) queue.")]
+    [SerializeField] private bool enablePassiveSales = true;
+    [Tooltip("How often (in seconds) the sawmill sells a single item.")]
+    [SerializeField] private float passiveSaleInterval = 120f;
+    [Tooltip("Multiplier applied to the item's true value when sold passively. (0.5 = 50% value)")]
+    [SerializeField] private float passiveSaleValuePenalty = 0.5f;
 
     // ── Upgrade Slots ─────────────────────────────────────────────────
     [HideInInspector] public float millingSpeedMultiplier = 1f;
@@ -54,6 +61,60 @@ public class SawmillBuilding : MonoBehaviour
         Debug.Log($"[Sawmill] InputPosition: {InputPosition}, OutputPosition: {OutputPosition}");
 
         StartCoroutine(MillingLoop());
+        StartCoroutine(PassiveSalesLoop());
+    }
+
+    private IEnumerator PassiveSalesLoop()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(passiveSaleInterval);
+
+            if (!enablePassiveSales) continue;
+
+            var inv = InventoryManager.Instance;
+            var gm = GameManager.Instance;
+            if (inv == null || gm == null) continue;
+
+            // Prioritize selling from Output (Boards), fallback to Input (Logs)
+            LumberItem itemToSell = null;
+            Vector3 popUpTextPos = OutputPosition;
+
+            if (inv.HasItems(InventoryManager.InventoryZone.MillOutput))
+            {
+                itemToSell = inv.Dequeue(InventoryManager.InventoryZone.MillOutput);
+                popUpTextPos = OutputPosition;
+            }
+            else if (inv.HasItems(InventoryManager.InventoryZone.MillInput))
+            {
+                itemToSell = inv.Dequeue(InventoryManager.InventoryZone.MillInput);
+                popUpTextPos = InputPosition;
+            }
+
+            if (itemToSell != null && itemToSell.species != null)
+            {
+                float baseValue = itemToSell.CurrentMarketValue;
+                float multiplier = gm.GetSaleMultiplier(itemToSell.species);
+                float finalSalePrice = Mathf.Round(baseValue * multiplier * passiveSaleValuePenalty);
+
+                // Ensure at least 1 gold is granted
+                finalSalePrice = Mathf.Max(1f, finalSalePrice);
+
+                gm.EarnGold(finalSalePrice);
+                gm.RegisterItemSold(itemToSell, finalSalePrice);
+
+                Debug.Log($"[Sawmill] Passively sold {itemToSell.DisplayName} for {finalSalePrice}g.");
+
+                if (Sawmill.UI.WorldTextManager.Instance != null)
+                {
+                    Sawmill.UI.WorldTextManager.Instance.SpawnStaticText(
+                        popUpTextPos, 
+                        $"+{finalSalePrice:0}g", 
+                        new Color(1f, 0.84f, 0f) // Goldish yellow
+                    );
+                }
+            }
+        }
     }
 
     private IEnumerator MillingLoop()

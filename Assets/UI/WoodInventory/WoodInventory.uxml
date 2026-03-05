@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <!-- Template for individual wood cards -->
+    <ui:Template name="WoodInventoryCard" src="WoodInventoryCard.uxml" />
+
+    <!-- Style and Assets -->
+    <ui:Style src="../Style/MainTheme.uss" />
+
+    <!-- Root container anchored bottom-right (pushes submenu left to clear HUD) -->
+    <ui:VisualElement name="WoodInventoryOverlay" class="overlay-submenu-root" picking-mode="Ignore">
+        
+        <!-- Main Panel -->
+        <ui:VisualElement name="WoodInventoryPanel" class="sawmill-panel overlay-submenu-panel" style="flex-direction: column;" picking-mode="Position">
+            
+            <!-- Header Section with Title Ribbon and Close Button -->
+            <ui:VisualElement name="HeaderContainer" style="flex-direction: row; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; width: 100%;" picking-mode="Ignore">
+                <ui:VisualElement class="ribbon-banner" picking-mode="Ignore">
+                    <ui:Label text="Wood Inventory" class="header-text" />
+                </ui:VisualElement>
+                
+                <!-- Close Button -->
+                <ui:Button name="BtnClose" class="sawmill-button sawmill-button-danger" text="X" style="width: 40px; height: 40px; border-radius: 20px; flex-shrink: 0;" />
+            </ui:VisualElement>
+
+            <!-- Scrollable Grid Container for Wood Cards -->
+            <ui:ScrollView name="InventoryScrollView" mode="Vertical" horizontal-scroller-visibility="Hidden" style="flex-grow: 1;" picking-mode="Position">
+                
+                <!-- Grid layed out via wrap flex-direction in USS or inline style -->
+                <ui:VisualElement name="CardsContainer" style="flex-direction: row; flex-wrap: wrap; justify-content: center;" picking-mode="Ignore">
+                    <!-- Cards will be instantiated here by WoodInventoryController.cs -->
+                </ui:VisualElement>
+                
+            </ui:ScrollView>
+
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3078066755562501443
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2865753679687953695}
+  - component: {fileID: 6511269717658623146}
+  m_Layer: 0
+  m_Name: ForestZonePainter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2865753679687953695
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3078066755562501443}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 105.42365, y: 49.96338, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6511269717658623146
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3078066755562501443}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83e7cd5a37d3e804c9ae8ec66fce06e0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ForestZonePainter
+  forestZonePrefab: {fileID: 3075871299973480661, guid: a9782defd0db42741b3bfbb05295a8e4, type: 3}
+  _camera: {fileID: 0}
+  goldPerCell: 5
+  firstZoneMaxCells: 12
+  pineSpecies: {fileID: 11400000, guid: e319caa165eb10e4094e9dbe9867bffd, type: 2}
+  allSpecies:
+  - {fileID: 11400000, guid: e319caa165eb10e4094e9dbe9867bffd, type: 2}
+  - {fileID: 11400000, guid: 6f72a5dad62cd3648ad4a5035b0053ae, type: 2}
+  - {fileID: 11400000, guid: 526cbac5043df7946bbb74d1271d35ed, type: 2}
+  validCellColor: {r: 0.3, g: 0.85, b: 0.3, a: 0.45}
+  invalidCellColor: {r: 0.9, g: 0.2, b: 0.2, a: 0.45}
+  cappedCellColor: {r: 0.9, g: 0.7, b: 0.1, a: 0.45}

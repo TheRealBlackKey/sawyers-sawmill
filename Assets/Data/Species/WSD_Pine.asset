@@ -1,0 +1,91 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8cb02e803a9dd894a92d4c9130711cef, type: 3}
+  m_Name: WSD_Pine
+  m_EditorClassIdentifier: Assembly-CSharp::WoodSpeciesData
+  speciesName: Eastern White Pine
+  scientificName: Pinus strobus
+  flavorText: A softwood workhorse - fast growing and easy to work.
+  treeSpritesSapling:
+  - {fileID: 7496280436402465751, guid: bef0c11802b93444dbf396e03e9b73d6, type: 3}
+  - {fileID: -2648968155300843382, guid: bef0c11802b93444dbf396e03e9b73d6, type: 3}
+  - {fileID: 4621074439042728945, guid: bef0c11802b93444dbf396e03e9b73d6, type: 3}
+  - {fileID: 4080505527655055907, guid: bef0c11802b93444dbf396e03e9b73d6, type: 3}
+  - {fileID: -3664905511435904659, guid: bef0c11802b93444dbf396e03e9b73d6, type: 3}
+  treeSpritesJuvenile:
+  - {fileID: 235995763619146314, guid: d647f69d49993ac4d94ffa426e911685, type: 3}
+  - {fileID: -4380808759058902601, guid: d647f69d49993ac4d94ffa426e911685, type: 3}
+  - {fileID: 4007941315235991255, guid: d647f69d49993ac4d94ffa426e911685, type: 3}
+  - {fileID: -7823671882252082478, guid: d647f69d49993ac4d94ffa426e911685, type: 3}
+  - {fileID: -3257307410398823962, guid: d647f69d49993ac4d94ffa426e911685, type: 3}
+  treeSpritesMature:
+  - {fileID: 1616631775535991047, guid: 52087e2d4072bbc469f6dabe9a0828d1, type: 3}
+  - {fileID: -5166312994275755638, guid: 52087e2d4072bbc469f6dabe9a0828d1, type: 3}
+  - {fileID: 7322384504542093927, guid: 52087e2d4072bbc469f6dabe9a0828d1, type: 3}
+  - {fileID: 6802853350214602681, guid: 52087e2d4072bbc469f6dabe9a0828d1, type: 3}
+  - {fileID: -5368241897999253109, guid: 52087e2d4072bbc469f6dabe9a0828d1, type: 3}
+  treeSpriteReady: {fileID: 0}
+  logSprite: {fileID: -3151748145464785329, guid: d1bc782061286c54695ea6de3d9faef4, type: 3}
+  boardSprite: {fileID: 1773202813124821656, guid: 0e5ee5faaf306df4685e13f03ea5d737, type: 3}
+  barkColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  heartwoodColor: {r: 0.9, g: 0.8, b: 0.6, a: 1}
+  growthTimeSeconds: 45
+  regrowthMultiplier: 0
+  logsPerTree: 3
+  unlockCost: 0
+  totalLogsToUnlock: 0
+  requiresReplanting: 1
+  maxHarvestCycles: 3
+  saplingCost: 3
+  valuePerLogRaw: 2
+  valuePerBoardRoughSawn: 4
+  valuePerBoardKilnDried: 7
+  valuePerBoardSurfaced: 11
+  kilnDryTimeSeconds: 60
+  surfaceTimeSeconds: 20
+  millingTimePerLog: 15
+  boardsPerLog: 5
+  grainVariants:
+  - variantName: Straight Grain
+    description: 
+    boardSprite: {fileID: 0}
+    dropChance: 0.6
+    valueMultiplier: 1
+    isUnlocked: 1
+    boardsToUnlock: 0
+    rarityTier: 0
+    grainTintColor: {r: 0, g: 0, b: 0, a: 0}
+    triggerRevealEffect: 0
+  - variantName: Wavy Grain
+    description: 
+    boardSprite: {fileID: 0}
+    dropChance: 0.25
+    valueMultiplier: 1.4
+    isUnlocked: 1
+    boardsToUnlock: 10
+    rarityTier: 1
+    grainTintColor: {r: 0, g: 0, b: 0, a: 0}
+    triggerRevealEffect: 0
+  - variantName: Knotty Rustic
+    description: 
+    boardSprite: {fileID: 0}
+    dropChance: 0.15
+    valueMultiplier: 0.9
+    isUnlocked: 1
+    boardsToUnlock: 0
+    rarityTier: 0
+    grainTintColor: {r: 0, g: 0, b: 0, a: 0}
+    triggerRevealEffect: 0
+  isAromatic: 0
+  isSteamBendable: 0
+  isExotic: 0
+  hardness: 0.2

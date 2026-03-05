@@ -16,12 +16,18 @@ using UnityEngine.InputSystem;
 /// </summary>
 public class CameraScroll : MonoBehaviour
 {
+    // ── Strip Config (optional) ──────────────────────────────────────
+    [Header("Strip Config (optional)")]
+    [Tooltip("If assigned, camera bounds are driven by StripConfig automatically. " +
+             "Leave empty to use the manual Pan Bounds below.")]
+    [SerializeField] private StripConfig stripConfig;
+
     // ── Scroll / Pan Bounds ───────────────────────────────────────────
-    [Header("Pan Bounds")]
-    [SerializeField] private float minX = -600f;
-    [SerializeField] private float maxX =  600f;
-    [SerializeField] private float minY = -120f;
-    [SerializeField] private float maxY =  120f;
+    [Header("Pan Bounds (manual — ignored if StripConfig assigned)")]
+    [SerializeField] private float minX = -960f;
+    [SerializeField] private float maxX =  960f;
+    [SerializeField] private float minY = -160f;
+    [SerializeField] private float maxY =  160f;
 
     // ── Drag Pan ──────────────────────────────────────────────────────
     [Header("Drag Pan")]
@@ -100,11 +106,48 @@ public class CameraScroll : MonoBehaviour
         _camera = GetComponent<Camera>();
 
         _targetX         = transform.position.x;
-        _targetY         = transform.position.y;
         _targetOrthoSize = defaultOrthoSize;
 
         if (_camera != null)
             _camera.orthographicSize = defaultOrthoSize;
+
+        // Apply config first so _targetY comes from strip center, not transform
+        ApplyStripConfig();
+
+        // If no config, fall back to transform position
+        if (stripConfig == null)
+            _targetY = transform.position.y;
+    }
+
+    private void ApplyStripConfig()
+    {
+        if (stripConfig == null) return;
+        minX = stripConfig.MinWorldX;
+        maxX = stripConfig.MaxWorldX;
+        LockYToStripBottom();
+
+        // Immediately snap so there is no lerp drift on startup
+        transform.position = new Vector3(transform.position.x, _targetY, transform.position.z);
+
+        Debug.Log($"[CameraScroll] Strip anchored to bottom. " +
+                  $"X[{minX:F0},{maxX:F0}], camera Y locked to {_targetY:F1}");
+    }
+
+    /// <summary>
+    /// Recomputes the locked camera Y based on current ortho size.
+    /// Must be called whenever orthoSize changes so the strip stays
+    /// anchored to the bottom of the screen as you zoom in/out.
+    /// cameraY = MinWorldY + halfHeight
+    ///   → bottom of camera view = MinWorldY = true bottom of strip
+    /// </summary>
+    private void LockYToStripBottom()
+    {
+        if (stripConfig == null) return;
+        float halfHeight = _camera != null ? _camera.orthographicSize : defaultOrthoSize;
+        float cameraY    = stripConfig.MinWorldY + halfHeight;
+        minY     = cameraY;
+        maxY     = cameraY;
+        _targetY = cameraY;
     }
 
     private void Start()
@@ -133,6 +176,11 @@ public class CameraScroll : MonoBehaviour
     {
         if (_camera == null || !_camera.orthographic) return;
 
+        // Don't zoom while any UI menu is open — scroll wheel belongs to the UI
+        if (Sawmill.UI.UIManager.Instance != null && Sawmill.UI.UIManager.Instance.IsAnyMenuOpen) return;
+        if (Sawmill.UI.SawyerSpeciesPickerController.Instance != null && Sawmill.UI.SawyerSpeciesPickerController.Instance.IsOpen) return;
+        if (ForestZonePainter.Instance != null && ForestZonePainter.Instance.IsPickerOpen) return;
+
         var mouse = Mouse.current;
         if (mouse == null) return;
 
@@ -146,8 +194,7 @@ public class CameraScroll : MonoBehaviour
             minOrthoSize,
             maxOrthoSize);
 
-        // Optional: zoom toward mouse position in world space
-        // (keeps the point under the cursor stationary as you zoom)
+        // Zoom toward mouse X position (horizontal only — Y stays locked to strip)
         if (!_followMode)
         {
             Vector3 mouseScreen = new Vector3(
@@ -155,11 +202,9 @@ public class CameraScroll : MonoBehaviour
                 mouse.position.value.y,
                 0f);
             Vector3 mouseWorld = _camera.ScreenToWorldPoint(mouseScreen);
-
-            // Proportionally shift pan target toward mouse world position
             float zoomRatio = 1f - (_targetOrthoSize / _camera.orthographicSize);
             _targetX = Mathf.Lerp(_targetX, mouseWorld.x, zoomRatio * 0.35f);
-            _targetY = Mathf.Lerp(_targetY, mouseWorld.y, zoomRatio * 0.35f);
+            // _targetY intentionally not updated — strip camera never scrolls vertically
         }
     }
 
@@ -167,6 +212,7 @@ public class CameraScroll : MonoBehaviour
     private void HandleDragPan()
     {
         if (!enableDragScroll) return;
+        if (ForestZonePainter.Instance != null && ForestZonePainter.Instance.IsPainting) return;
 
         var mouse = Mouse.current;
         if (mouse == null) return;
@@ -185,14 +231,11 @@ public class CameraScroll : MonoBehaviour
         {
             Vector2 mouseDelta = (Vector2)mouse.position.value - _dragStartMouse;
 
-            // Scale delta from screen pixels → world units
+            // Only pan horizontally — Y is locked to strip center
             float worldWidth  = GetWorldWidth();
-            float worldHeight = GetWorldHeight();
-            float worldDeltaX = mouseDelta.x * (worldWidth  / Screen.width)  * dragSensitivity;
-            float worldDeltaY = mouseDelta.y * (worldHeight / Screen.height) * dragSensitivity;
-
+            float worldDeltaX = mouseDelta.x * (worldWidth / Screen.width) * dragSensitivity;
             _targetX = _dragStartWorld.x - worldDeltaX;
-            _targetY = _dragStartWorld.y - worldDeltaY;
+            // _targetY intentionally not updated — strip camera never scrolls vertically
         }
     }
 
@@ -213,10 +256,7 @@ public class CameraScroll : MonoBehaviour
         else if (mouseX > Screen.width - edgeScrollZone)
             _targetX += edgeScrollSpeed * ((mouseX - (Screen.width - edgeScrollZone)) / edgeScrollZone) * dt;
 
-        if (mouseY < edgeScrollZone)
-            _targetY -= edgeScrollSpeed * (1f - mouseY / edgeScrollZone) * dt;
-        else if (mouseY > Screen.height - edgeScrollZone)
-            _targetY += edgeScrollSpeed * ((mouseY - (Screen.height - edgeScrollZone)) / edgeScrollZone) * dt;
+        // Vertical edge scroll disabled — Y is locked to strip center
     }
 
     // ── Follow Mode ───────────────────────────────────────────────────
@@ -247,10 +287,9 @@ public class CameraScroll : MonoBehaviour
         _targetX = Mathf.Clamp(_targetX, minX, maxX);
         _targetY = Mathf.Clamp(_targetY, minY, maxY);
 
-        // Smooth pan
+        // Smooth pan — X lerps smoothly, Y snaps instantly (locked to strip bottom)
         float newX = Mathf.Lerp(transform.position.x, _targetX, Time.deltaTime * panSmoothing);
-        float newY = Mathf.Lerp(transform.position.y, _targetY, Time.deltaTime * panSmoothing);
-        transform.position = new Vector3(newX, newY, transform.position.z);
+        transform.position = new Vector3(newX, _targetY, transform.position.z);
 
         // Smooth zoom
         if (_camera != null && _camera.orthographic)
@@ -259,6 +298,10 @@ public class CameraScroll : MonoBehaviour
                 _camera.orthographicSize,
                 _targetOrthoSize,
                 Time.deltaTime * zoomSmoothing);
+
+            // Re-lock Y every frame after zoom updates so the strip
+            // stays anchored to the bottom as ortho size changes
+            LockYToStripBottom();
         }
     }
 

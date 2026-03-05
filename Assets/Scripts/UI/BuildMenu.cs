@@ -12,7 +12,7 @@ public class BuildMenu : MonoBehaviour
     public static BuildMenu Instance { get; private set; }
 
     [Header("UI References")]
-    [SerializeField] private GameObject menuPanel;
+    [SerializeField] private GameObject menuPanel = null;
     [SerializeField] private Transform buildingListParent;
 
     [Header("All Buildable Buildings")]
@@ -29,10 +29,7 @@ public class BuildMenu : MonoBehaviour
     private void Start()
     {
         if (menuPanel != null)
-        {
             menuPanel.SetActive(false);
-            CreateCloseButton();
-        }
 
         PlacementManager.OnBuildingPlaced += OnBuildingPlaced;
         PlacementManager.OnPlacementCancelled += OnPlacementCancelled;
@@ -63,44 +60,46 @@ public class BuildMenu : MonoBehaviour
         if (menuPanel != null) menuPanel.SetActive(false);
     }
 
-    // ── Close Button ──────────────────────────────────────────────────
-    // Created once on Start, always visible at top of panel
+    // ── Close Entry ───────────────────────────────────────────────────
+    // Rendered as the last item in the building list so it's always reachable
 
-    private void CreateCloseButton()
+    private void CreateCloseEntry(int index)
     {
-        RectTransform panelRT = menuPanel.GetComponent<RectTransform>();
+        float rowHeight = 36f;
+        float rowWidth  = 260f;
+        float yOffset   = -(index * (44f + 4f));
 
-        GameObject btnGO = new GameObject("CloseButton", typeof(RectTransform));
-        btnGO.transform.SetParent(menuPanel.transform, false);
+        GameObject row = new GameObject("CloseEntry", typeof(RectTransform));
+        row.transform.SetParent(buildingListParent, false);
 
-        RectTransform btnRT = btnGO.GetComponent<RectTransform>();
-        btnRT.anchorMin = new Vector2(1f, 1f);
-        btnRT.anchorMax = new Vector2(1f, 1f);
-        btnRT.pivot = new Vector2(1f, 1f);
-        btnRT.anchoredPosition = new Vector2(-4f, -4f);
-        btnRT.sizeDelta = new Vector2(50f, 24f);
+        RectTransform rowRT = row.GetComponent<RectTransform>();
+        rowRT.anchorMin        = new Vector2(0f, 1f);
+        rowRT.anchorMax        = new Vector2(0f, 1f);
+        rowRT.pivot            = new Vector2(0f, 1f);
+        rowRT.anchoredPosition = new Vector2(4f, yOffset - 4f);
+        rowRT.sizeDelta        = new Vector2(rowWidth, rowHeight);
 
-        Image btnImage = btnGO.AddComponent<Image>();
-        btnImage.color = new Color(0.5f, 0.15f, 0.1f, 1f); // dark red-brown
+        Image rowBG = row.AddComponent<Image>();
+        rowBG.color = new Color(0.4f, 0.12f, 0.08f, 1f);
 
-        Button btn = btnGO.AddComponent<Button>();
-        btn.targetGraphic = btnImage;
+        Button btn = row.AddComponent<Button>();
+        btn.targetGraphic = rowBG;
         btn.onClick.AddListener(CloseMenu);
 
-        GameObject btnTextGO = new GameObject("CloseText", typeof(RectTransform));
-        btnTextGO.transform.SetParent(btnGO.transform, false);
+        GameObject lblGO = new GameObject("Label", typeof(RectTransform));
+        lblGO.transform.SetParent(row.transform, false);
 
-        RectTransform btnTextRT = btnTextGO.GetComponent<RectTransform>();
-        btnTextRT.anchorMin = Vector2.zero;
-        btnTextRT.anchorMax = Vector2.one;
-        btnTextRT.offsetMin = Vector2.zero;
-        btnTextRT.offsetMax = Vector2.zero;
+        RectTransform lblRT = lblGO.GetComponent<RectTransform>();
+        lblRT.anchorMin        = Vector2.zero;
+        lblRT.anchorMax        = Vector2.one;
+        lblRT.offsetMin        = Vector2.zero;
+        lblRT.offsetMax        = Vector2.zero;
 
-        TextMeshProUGUI btnText = btnTextGO.AddComponent<TextMeshProUGUI>();
-        btnText.text = "Close";
-        btnText.fontSize = 11;
-        btnText.color = Color.white;
-        btnText.alignment = TextAlignmentOptions.Center;
+        TextMeshProUGUI lbl = lblGO.AddComponent<TextMeshProUGUI>();
+        lbl.text      = "✕  Close";
+        lbl.fontSize  = 12;
+        lbl.color     = new Color(0.95f, 0.7f, 0.65f);
+        lbl.alignment = TextAlignmentOptions.Center;
     }
 
     // ── Entries ───────────────────────────────────────────────────────
@@ -111,12 +110,119 @@ public class BuildMenu : MonoBehaviour
             Destroy(child.gameObject);
 
         int index = 0;
+
+        // ── Forest zone entry always appears first ─────────────────────
+        CreateForestEntry(index);
+        index++;
+
         foreach (var building in allBuildings)
         {
             if (building == null) continue;
             CreateEntry(building, index);
             index++;
         }
+
+        // ── Close button as final entry ────────────────────────────────
+        CreateCloseEntry(index);
+    }
+
+    private void CreateForestEntry(int index)
+    {
+        bool isFirstZone   = ForestZonePainter.Instance != null && !ForestZonePainter.Instance.HasPlacedFirstZone;
+        string label       = isFirstZone ? "Plant Forest" : "Plant Forest";
+        string costLabel   = isFirstZone ? "Free" : $"${ForestZonePainter.Instance?.GoldPerCell ?? 5f}/cell";
+        bool canAfford     = isFirstZone || (GameManager.Instance != null && GameManager.Instance.Gold > 0);
+
+        float rowHeight = 44f;
+        float rowWidth  = 260f;
+        float yOffset   = -(index * (rowHeight + 4f));
+
+        GameObject row = new GameObject("ForestZone_Entry", typeof(RectTransform));
+        row.transform.SetParent(buildingListParent, false);
+
+        RectTransform rowRT = row.GetComponent<RectTransform>();
+        rowRT.anchorMin        = new Vector2(0f, 1f);
+        rowRT.anchorMax        = new Vector2(0f, 1f);
+        rowRT.pivot            = new Vector2(0f, 1f);
+        rowRT.anchoredPosition = new Vector2(4f, yOffset - 4f);
+        rowRT.sizeDelta        = new Vector2(rowWidth, rowHeight);
+
+        Image rowBG = row.AddComponent<Image>();
+        // Slightly greener tint to distinguish from building rows
+        rowBG.color = new Color(0.25f, 0.45f, 0.2f, 1f);
+
+        // ── Name ──────────────────────────────────────────────────────
+        GameObject nameGO = new GameObject("NameText", typeof(RectTransform));
+        nameGO.transform.SetParent(row.transform, false);
+
+        RectTransform nameRT = nameGO.GetComponent<RectTransform>();
+        nameRT.anchorMin        = new Vector2(0f, 0f);
+        nameRT.anchorMax        = new Vector2(0f, 0f);
+        nameRT.pivot            = new Vector2(0f, 0f);
+        nameRT.anchoredPosition = new Vector2(6f, 6f);
+        nameRT.sizeDelta        = new Vector2(120f, 32f);
+
+        TextMeshProUGUI nameText = nameGO.AddComponent<TextMeshProUGUI>();
+        nameText.text      = label;
+        nameText.fontSize  = 12;
+        nameText.color     = new Color(0.95f, 0.90f, 0.78f);
+        nameText.alignment = TextAlignmentOptions.MidlineLeft;
+
+        // ── Cost ──────────────────────────────────────────────────────
+        GameObject costGO = new GameObject("CostText", typeof(RectTransform));
+        costGO.transform.SetParent(row.transform, false);
+
+        RectTransform costRT = costGO.GetComponent<RectTransform>();
+        costRT.anchorMin        = new Vector2(0f, 0f);
+        costRT.anchorMax        = new Vector2(0f, 0f);
+        costRT.pivot            = new Vector2(0f, 0f);
+        costRT.anchoredPosition = new Vector2(132f, 6f);
+        costRT.sizeDelta        = new Vector2(50f, 32f);
+
+        TextMeshProUGUI costText = costGO.AddComponent<TextMeshProUGUI>();
+        costText.text      = costLabel;
+        costText.fontSize  = 11;
+        costText.color     = isFirstZone ? new Color(0.5f, 0.9f, 0.4f) : new Color(0.9f, 0.85f, 0.5f);
+        costText.alignment = TextAlignmentOptions.MidlineLeft;
+
+        // ── Button ────────────────────────────────────────────────────
+        GameObject btnGO = new GameObject("PlantBtn", typeof(RectTransform));
+        btnGO.transform.SetParent(row.transform, false);
+
+        RectTransform btnRT = btnGO.GetComponent<RectTransform>();
+        btnRT.anchorMin        = new Vector2(0f, 0f);
+        btnRT.anchorMax        = new Vector2(0f, 0f);
+        btnRT.pivot            = new Vector2(0f, 0f);
+        btnRT.anchoredPosition = new Vector2(188f, 4f);
+        btnRT.sizeDelta        = new Vector2(66f, 36f);
+
+        Image btnImage = btnGO.AddComponent<Image>();
+        btnImage.color = new Color(0.2f, 0.5f, 0.2f, 1f);
+
+        Button btn = btnGO.AddComponent<Button>();
+        btn.targetGraphic = btnImage;
+
+        GameObject btnTextGO = new GameObject("BtnText", typeof(RectTransform));
+        btnTextGO.transform.SetParent(btnGO.transform, false);
+
+        RectTransform btnTextRT = btnTextGO.GetComponent<RectTransform>();
+        btnTextRT.anchorMin        = new Vector2(0f, 0f);
+        btnTextRT.anchorMax        = new Vector2(0f, 0f);
+        btnTextRT.pivot            = new Vector2(0f, 0f);
+        btnTextRT.anchoredPosition = Vector2.zero;
+        btnTextRT.sizeDelta        = new Vector2(66f, 36f);
+
+        TextMeshProUGUI btnText = btnTextGO.AddComponent<TextMeshProUGUI>();
+        btnText.text      = "Plant";
+        btnText.fontSize  = 11;
+        btnText.color     = Color.white;
+        btnText.alignment = TextAlignmentOptions.Center;
+
+        btn.onClick.AddListener(() =>
+        {
+            CloseMenu();
+            ForestZonePainter.Instance?.BeginPainting();
+        });
     }
 
     private void CreateEntry(BuildingData building, int index)

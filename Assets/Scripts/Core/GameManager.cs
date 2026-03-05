@@ -73,6 +73,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private WoodSpeciesData[] allSpecies;
 
     // ── Lifecycle ─────────────────────────────────────────────────────
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -84,13 +85,18 @@ public class GameManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    [Header("Testing")]
+    [Tooltip("When ON, ignores any saved game and always starts fresh with Starting Gold.")]
+    [SerializeField] private bool ignoreSaveOnStart = false;
+
     private void Start()
     {
-        LoadGame();
-
-        if (_gold == 0f)
+        // Don't auto-set Gold here if loading a game
+        if (ignoreSaveOnStart)
+        {
             Gold = startingGold;
-
+        }
+        
         RollTrendingSpecies();
     }
 
@@ -222,55 +228,39 @@ public class GameManager : MonoBehaviour
         OnRareGrainRevealed?.Invoke(variant, species);
     }
 
-    // ── Save / Load ───────────────────────────────────────────────────
-    private const string SAVE_KEY = "SawyersSawmill_SaveData";
-
-    public void SaveGame()
+    // ── Save / Load (Orchestrated by SaveManager) ─────────────────────
+    
+    public void LoadFromSaveData(
+        float loadedGold, float loadedRep, int loadedDay,
+        int itemsSold, float goldEarned,
+        List<string> bpKeys, List<int> bpValues,
+        List<string> lhKeys, List<int> lhValues)
     {
-        var data = new SaveData
+        // Only load gold if it's greater than starting, or if we actually made progress
+        if (loadedGold > startingGold || itemsSold > 0)
+            Gold = loadedGold;
+        else 
+            Gold = startingGold;
+
+        Reputation      = loadedRep;
+        _currentDay     = loadedDay;
+        TotalItemsSold  = itemsSold;
+        TotalGoldEarned = goldEarned;
+
+        TotalBoardsProcessed.Clear();
+        for (int i = 0; i < bpKeys.Count; i++)
         {
-            gold = _gold,
-            reputation = _reputation,
-            currentDay = _currentDay,
-            totalItemsSold = TotalItemsSold,
-            totalGoldEarned = TotalGoldEarned
-        };
-        string json = JsonUtility.ToJson(data);
-        PlayerPrefs.SetString(SAVE_KEY, json);
-        PlayerPrefs.Save();
-        Debug.Log("[GameManager] Game saved.");
-    }
+            if (i < bpValues.Count)
+                TotalBoardsProcessed[bpKeys[i]] = bpValues[i];
+        }
 
-    public void LoadGame()
-    {
-        if (!PlayerPrefs.HasKey(SAVE_KEY)) return;
-        string json = PlayerPrefs.GetString(SAVE_KEY);
-        var data = JsonUtility.FromJson<SaveData>(json);
-        _gold = data.gold;
-        _reputation = data.reputation;
-        _currentDay = data.currentDay;
-        TotalItemsSold = data.totalItemsSold;
-        TotalGoldEarned = data.totalGoldEarned;
-        Debug.Log("[GameManager] Game loaded.");
-    }
+        TotalLogsHarvested.Clear();
+        for (int i = 0; i < lhKeys.Count; i++)
+        {
+            if (i < lhValues.Count)
+                TotalLogsHarvested[lhKeys[i]] = lhValues[i];
+        }
 
-    private void OnApplicationQuit()
-    {
-        SaveGame();
-    }
-
-    private void OnApplicationPause(bool paused)
-    {
-        if (paused) SaveGame();
-    }
-
-    [System.Serializable]
-    private class SaveData
-    {
-        public float gold;
-        public float reputation;
-        public int currentDay;
-        public int totalItemsSold;
-        public float totalGoldEarned;
+        Debug.Log($"[GameManager] State restored. Gold: {Gold}, Day: {_currentDay}");
     }
 }

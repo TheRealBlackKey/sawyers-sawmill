@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0a2d944af2441f24e982aebd2ebf82f2, type: 3}
+  m_Name: TD_New
+  m_EditorClassIdentifier: Assembly-CSharp::TileData
+  tileName: New Tile
+  sprite: {fileID: -1944611445687074188, guid: c49bf012bc7978c4d8131196abba515d, type: 3}
+  category: 0
+  isWalkable: 1
+  weight: 10
+  cellTypeOverride: 0

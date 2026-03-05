@@ -4,12 +4,10 @@ using System;
 
 /// <summary>
 /// The surfacing building. Reveals grain in kiln-dried boards physically
-/// delivered by Sawyer. This is the game's "slot machine" moment —
-/// the sawdust clears and the figure is revealed.
+/// delivered by Sawyer.
 ///
-/// FIX (Session 4): Removed SurfacingLoop() auto-pull coroutine.
-/// Boards only enter via ProcessBoard(), called when Sawyer arrives.
-/// Sawyer watches for SurfacingOutput to fill, then carries to market.
+/// FIX (Session 5): Positions are no longer set in Start() — they are set via
+/// Initialize(worldPosition) which PlacementManager calls immediately after placing.
 ///
 /// InputPosition  — where Sawyer walks to DROP off a dried board
 /// OutputPosition — where Sawyer walks to PICK UP a surfaced board
@@ -27,36 +25,51 @@ public class SurfacingBuilding : MonoBehaviour
     [SerializeField] private float baseSurfacingTime = 30f;
 
     // ── Upgrade slots ─────────────────────────────────────────────────
-    [HideInInspector] public float speedMultiplier  = 1f;
-    [HideInInspector] public float rarityBonus      = 0f;
-    [HideInInspector] public bool  hasJointer       = true;
-    [HideInInspector] public bool  hasPlaner        = false;
-    [HideInInspector] public bool  hasDrumSander    = false;
+    [HideInInspector] public float speedMultiplier   = 1f;
+    [HideInInspector] public float rarityBonus       = 0f;
+    [HideInInspector] public bool  hasJointer        = true;
+    [HideInInspector] public bool  hasPlaner         = false;
+    [HideInInspector] public bool  hasDrumSander     = false;
     [HideInInspector] public bool  hasWideBeltSander = false;
-    [HideInInspector] public bool  hasCNCRouter     = false;
-    [HideInInspector] public int   slotCapacity     = 1;
+    [HideInInspector] public bool  hasCNCRouter      = false;
+    [HideInInspector] public int   slotCapacity      = 1;
 
-    public bool IsFull        => _processingCount >= slotCapacity;
-    public bool IsProcessing  => _processingCount > 0;
+    public bool  IsFull             => _processingCount >= slotCapacity;
+    public bool  IsProcessing       => _processingCount > 0;
     public float ProcessingProgress { get; private set; } = 0f;
     public LumberItem CurrentBoard  { get; private set; }
 
-    private int _processingCount = 0;
+    private int  _processingCount = 0;
+    private bool _initialized     = false;
 
     [Header("Reveal Effects")]
     [SerializeField] private ParticleSystem sawdustRevealParticles;
     [SerializeField] private GameObject     grainRevealEffectPrefab;
     [SerializeField] private SpriteRenderer boardDisplaySprite;
 
+    // ── Initialization ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Called by PlacementManager immediately after placing this building.
+    /// Sets input/output positions from the confirmed world position.
+    /// </summary>
+    public void Initialize(Vector3 worldPosition)
+    {
+        InputPosition  = new Vector3(worldPosition.x - 20f, worldPosition.y, 0f);
+        OutputPosition = new Vector3(worldPosition.x + 20f, worldPosition.y, 0f);
+        _initialized   = true;
+
+        Debug.Log($"[Surfacing] Initialized at {worldPosition} — Input: {InputPosition}, Output: {OutputPosition}");
+    }
+
     private void Start()
     {
-        // Auto-set positions relative to world position
-        float x = transform.position.x;
-        float y = transform.position.y;
-        InputPosition  = new Vector3(x - 20f, y, 0f);
-        OutputPosition = new Vector3(x + 20f, y, 0f);
-
-        // No auto-loop — boards only enter via ProcessBoard()
+        // Fall back to transform position if Initialize() was not called
+        // (e.g. building placed directly in scene during edit time)
+        if (!_initialized)
+        {
+            Initialize(transform.position);
+        }
     }
 
     // ── Physical delivery by Sawyer ───────────────────────────────────
@@ -180,7 +193,6 @@ public class SurfacingBuilding : MonoBehaviour
         if (hasWideBeltSander && board.quality < QualityGrade.Premium && board.grainVariant?.rarityTier >= 2)
             board.quality = QualityGrade.Premium;
 
-        // Board goes to SurfacingOutput — Sawyer will come collect it
         InventoryManager.Instance?.AddItem(board, InventoryManager.InventoryZone.SurfacingOutput);
         GameManager.Instance?.RegisterItemProduced(board);
         Debug.Log($"[Surfacing] Finished {board.DisplayName} ({board.quality}) — ready for Sawyer to collect.");
@@ -195,7 +207,7 @@ public class SurfacingBuilding : MonoBehaviour
     private float GetSurfacingDuration(LumberItem board)
     {
         float time = board.species != null ? board.species.surfaceTimeSeconds : baseSurfacingTime;
-        if (hasPlaner)    time *= 0.85f;
+        if (hasPlaner)     time *= 0.85f;
         if (hasDrumSander) time *= 0.9f;
         time *= speedMultiplier;
         return time;

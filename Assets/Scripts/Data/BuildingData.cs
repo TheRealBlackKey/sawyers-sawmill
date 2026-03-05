@@ -15,8 +15,21 @@ public class BuildingData : ScriptableObject
     public Sprite previewSprite;       // Shown in build menu and as ghost
     public Sprite builtSprite;         // Shown when placed in world
 
-    [Header("Footprint")]
-    public Vector2 footprintSize = new Vector2(80f, 50f);  // World units (width x height)
+    [Header("Grid Footprint (in cells)")]
+    [Tooltip("How many grid columns this building occupies. 1 cell = 32 world units.")]
+    public int gridWidth  = 2;
+    [Tooltip("How many grid rows this building occupies. 1 cell = 32 world units.")]
+    public int gridHeight = 2;
+
+    [Tooltip("The operational radius of this building in grid cells (0 means no area effect). Used for Helpers.")]
+    public int effectRadius = 0;
+
+    [Tooltip("The worker prefab to spawn when this building is created (used for Quarters).")]
+    public GameObject helperPrefab;
+
+    // Legacy world-unit footprint — kept for any scripts that still reference it.
+    // Prefer gridWidth/gridHeight for all new placement logic.
+    [HideInInspector] public Vector2 footprintSize = new Vector2(80f, 50f);
 
     [Header("Cost & Unlock")]
     public int goldCost = 100;
@@ -28,9 +41,8 @@ public class BuildingData : ScriptableObject
     public BuildingCategory category = BuildingCategory.Production;
 
     [Header("Placement Rules")]
-    public bool canPlaceNearWater = false;   // Some buildings (mill) can go near streams
-    public bool requiresFlatGround = true;
-    public float minDistanceFromSawmill = 0f; // 0 = no restriction
+    public bool canPlaceNearWater = false;   // Reflected in WorldGrid cell queries (future)
+
 
     [Header("Runtime Reference")]
     public string scriptTypeName = "";  // e.g. "KilnBuilding" — attached when placed

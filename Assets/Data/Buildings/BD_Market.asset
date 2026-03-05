@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01f91b42a4b01c7438045282348a3ffb, type: 3}
+  m_Name: BD_Market
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingName: Market Stall
+  description: Sells finished lumber to buyers in town. Higher quality boards and
+    rare grain patterns command premium prices. Watch for market days!
+  previewSprite: {fileID: 1070290429689003648, guid: 9dc49710404658744ba7b4a366c37911, type: 3}
+  builtSprite: {fileID: 1070290429689003648, guid: 9dc49710404658744ba7b4a366c37911, type: 3}
+  gridWidth: 2
+  gridHeight: 2
+  footprintSize: {x: 40, y: 30}
+  goldCost: 150
+  reputationRequired: 0
+  logsHarvestedRequired: 0
+  requiredBuildings: []
+  category: 3
+  canPlaceNearWater: 0
+  scriptTypeName: MarketBuilding

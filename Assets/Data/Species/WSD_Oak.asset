@@ -1,0 +1,102 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8cb02e803a9dd894a92d4c9130711cef, type: 3}
+  m_Name: WSD_Oak
+  m_EditorClassIdentifier: Assembly-CSharp::WoodSpeciesData
+  speciesName: Red Oak
+  scientificName: Pinus strobus
+  flavorText: A strong, open-grained hardwood with a warm reddish tone. The distinctive
+    ray fleck pattern makes quartersawn oak stunning at market.
+  treeSpritesSapling:
+  - {fileID: -5928043440182657774, guid: 2b773de90702389408a2405f6231ccca, type: 3}
+  - {fileID: 4425918560202923713, guid: 2b773de90702389408a2405f6231ccca, type: 3}
+  - {fileID: -5926670661439410081, guid: 2b773de90702389408a2405f6231ccca, type: 3}
+  - {fileID: -422835846784459724, guid: 2b773de90702389408a2405f6231ccca, type: 3}
+  - {fileID: 2890001688476835132, guid: 2b773de90702389408a2405f6231ccca, type: 3}
+  treeSpritesJuvenile:
+  - {fileID: -1435856466458338471, guid: 22ce3fa5ceb9ba847a87be10cad0590b, type: 3}
+  - {fileID: 1621131839755548504, guid: 22ce3fa5ceb9ba847a87be10cad0590b, type: 3}
+  - {fileID: -2242267221220236506, guid: 22ce3fa5ceb9ba847a87be10cad0590b, type: 3}
+  - {fileID: -6646077366190236251, guid: 22ce3fa5ceb9ba847a87be10cad0590b, type: 3}
+  - {fileID: -8190985648464097054, guid: 22ce3fa5ceb9ba847a87be10cad0590b, type: 3}
+  treeSpritesMature:
+  - {fileID: 6080964831954376107, guid: 7d3a28fd748aef44c9d147bf625ad737, type: 3}
+  - {fileID: 1565767135737917595, guid: 7d3a28fd748aef44c9d147bf625ad737, type: 3}
+  - {fileID: -7622018349984111955, guid: 7d3a28fd748aef44c9d147bf625ad737, type: 3}
+  - {fileID: -1978655835925290485, guid: 7d3a28fd748aef44c9d147bf625ad737, type: 3}
+  - {fileID: -952759684267748163, guid: 7d3a28fd748aef44c9d147bf625ad737, type: 3}
+  treeSpriteReady: {fileID: 0}
+  logSprite: {fileID: 0}
+  boardSprite: {fileID: 0}
+  barkColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  heartwoodColor: {r: 0.9, g: 0.8, b: 0.6, a: 1}
+  growthTimeSeconds: 90
+  regrowthMultiplier: 0
+  logsPerTree: 1
+  unlockCost: 0
+  totalLogsToUnlock: 30
+  requiresReplanting: 1
+  maxHarvestCycles: 3
+  saplingCost: 5
+  valuePerLogRaw: 2
+  valuePerBoardRoughSawn: 5
+  valuePerBoardKilnDried: 8
+  valuePerBoardSurfaced: 28
+  kilnDryTimeSeconds: 120
+  surfaceTimeSeconds: 30
+  millingTimePerLog: 20
+  boardsPerLog: 4
+  grainVariants:
+  - variantName: Straight Grain
+    description: 
+    boardSprite: {fileID: 0}
+    dropChance: 0.55
+    valueMultiplier: 1
+    isUnlocked: 1
+    boardsToUnlock: 0
+    rarityTier: 0
+    grainTintColor: {r: 0, g: 0, b: 0, a: 0}
+    triggerRevealEffect: 0
+  - variantName: Ray Fleck
+    description: 
+    boardSprite: {fileID: 0}
+    dropChance: 0.25
+    valueMultiplier: 1.6
+    isUnlocked: 1
+    boardsToUnlock: 8
+    rarityTier: 1
+    grainTintColor: {r: 0, g: 0, b: 0, a: 0}
+    triggerRevealEffect: 0
+  - variantName: Tiger Oak
+    description: 
+    boardSprite: {fileID: 0}
+    dropChance: 0.12
+    valueMultiplier: 2.2
+    isUnlocked: 1
+    boardsToUnlock: 20
+    rarityTier: 2
+    grainTintColor: {r: 0, g: 0, b: 0, a: 0}
+    triggerRevealEffect: 0
+  - variantName: Pippy Oak
+    description: 
+    boardSprite: {fileID: 0}
+    dropChance: 0.08
+    valueMultiplier: 2.8
+    isUnlocked: 1
+    boardsToUnlock: 40
+    rarityTier: 2
+    grainTintColor: {r: 0, g: 0, b: 0, a: 0}
+    triggerRevealEffect: 0
+  isAromatic: 0
+  isSteamBendable: 0
+  isExotic: 0
+  hardness: 0.5

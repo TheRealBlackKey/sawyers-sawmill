@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:uie="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+    <!-- Style and Assets -->
+    <ui:Style src="../Style/MainTheme.uss" />
+
+    <!-- Root container anchored bottom-right (pushes submenu left to clear HUD) -->
+    <ui:VisualElement name="FurnitureCreatorOverlay" class="overlay-submenu-root">
+        
+        <!-- Main Layout -->
+        <ui:VisualElement name="FurnitureCreatorPanel" class="sawmill-panel overlay-submenu-panel" style="flex-direction: row; min-width: 650px;">
+            
+            <ui:VisualElement class="furniture-creator-left-panel">
+                
+                <ui:Label text="Furniture Workshop" class="header-text" />
+                
+                <!-- Blueprint Dropdown (Mocked as a button for now) -->
+                <ui:Label text="Select Blueprint:" class="unity-label" style="margin-top: 16px; font-weight: bold;" />
+                <ui:Button name="BtnSelectBlueprint" class="sawmill-button" text="Artisan Dining Table ▼" style="margin-bottom: 24px;" />
+
+                <ui:Label text="Wood Components:" class="unity-label" style="font-weight: bold; margin-bottom: 8px;" />
+                
+                <!-- Component Slot: Table Top -->
+                <ui:VisualElement class="sawmill-panel" style="flex-direction: row; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 8px; height: 60px;">
+                    <ui:VisualElement>
+                        <ui:Label text="Table Top (Requires 12x Surfaced)" class="unity-label" style="font-size: 14px; font-weight: bold;" />
+                    </ui:VisualElement>
+                    <ui:Button name="BtnAssignWoodTop" class="sawmill-button sawmill-button-primary" text="Select Wood..." style="height: 30px; padding: 4px;" />
+                </ui:VisualElement>
+
+                <!-- Component Slot: Legs -->
+                <ui:VisualElement class="sawmill-panel" style="flex-direction: row; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 8px; height: 60px;">
+                    <ui:VisualElement>
+                        <ui:Label text="Table Legs (Requires 4x Turned)" class="unity-label" style="font-size: 14px; font-weight: bold;" />
+                    <ui:Button name="BtnAssignWoodLegs" class="sawmill-button sawmill-button-primary furniture-creator-component-btn" text="Shadow Walnut (Curly)" />
+                </ui:VisualElement>
+
+                <!-- Component Slot: Apron -->
+                <ui:VisualElement class="sawmill-panel" style="flex-direction: row; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 8px; height: 60px;">
+                    <ui:VisualElement>
+                        <ui:Label text="Apron (Requires 4x Surfaced)" class="unity-label" style="font-size: 14px; font-weight: bold;" />
+                    </ui:VisualElement>
+                    <ui:Button name="BtnAssignWoodApron" class="sawmill-button sawmill-button-primary" text="Select Wood..." style="height: 30px; padding: 4px;" />
+                </ui:VisualElement>
+
+            </ui:VisualElement>
+
+            <!-- Right Side: Preview & Stats -->
+            <ui:VisualElement style="width: 55%; flex-direction: column; align-items: center; justify-content: space-between;">
+                
+                <!-- Close Button in Top Right -->
+                <ui:VisualElement style="width: 100%; flex-direction: row; justify-content: flex-end;">
+                    <ui:Button name="BtnClose" class="sawmill-button sawmill-button-danger" text="X" style="width: 40px; height: 40px; border-radius: 20px;" />
+                </ui:VisualElement>
+
+                <!-- Preview Image Area -->
+                <ui:VisualElement name="FurniturePreview" class="furniture-preview-area">
+                    <ui:Label text="[ Möbel Art Placeholder ]" class="unity-label" style="color: #5C4033; opacity: 0.5; font-style: italic;" />
+                </ui:VisualElement>
+
+                <!-- Stats Footer -->
+                <ui:VisualElement class="sawmill-panel furniture-craft-footer">
+                    <ui:VisualElement>
+                        <ui:Label text="Projected Value:" class="unity-label" style="color: #F4EEDF; font-size: 12px;" />
+                        <ui:Label text="$ ??? (Missing Materials)" class="unity-label" style="color: #D4AF37; -unity-font-style: bold; font-size: 24px;" />
+                    </ui:VisualElement>
+                    <ui:Button name="BtnCraft" class="sawmill-button" text="Start Work" style="height: 50px; opacity: 0.5;" />
+                </ui:VisualElement>
+
+            </ui:VisualElement>
+
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

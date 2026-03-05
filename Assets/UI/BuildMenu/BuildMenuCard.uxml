@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:uie="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd"
+>
+    <ui:Style src="../Style/MainTheme.uss" />
+
+    <ui:VisualElement class="sawmill-panel" style="flex-direction: row; margin-bottom: 12px; height: 120px; align-items: stretch; justify-content: space-between;">
+        <!-- Left Side: Image + Description -->
+        <ui:VisualElement style="flex-direction: row; align-items: center; width: 60%;">
+            <ui:VisualElement class="planting-menu-image" />
+            <ui:VisualElement style="flex-direction: column; width: 100%; flex-wrap: wrap;">
+                <ui:Label name="BuildingName" text="Building Name" class="header-text" style="font-size: 24px;" />
+                <ui:Label name="BuildingDesc" text="Building Description" class="unity-label" style="white-space: normal;" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- Right Side: Action Button -->
+        <ui:VisualElement style="flex-direction: column; justify-content: center; align-items: center; width: 30%;">
+            <ui:Label name="BuildingCost" text="Cost: $0" class="unity-label" style="-unity-font-style: bold; margin-bottom: 8px; color: #D4AF37;" />
+            <ui:Button name="BtnBuildStructure" class="sawmill-button sawmill-button-primary" text="Build Structure" style="width: 100%;" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+
+</ui:UXML>
