@@ -314,6 +314,11 @@ public class PlacementManager : MonoBehaviour
             float spriteW = sr.sprite.rect.width  / sr.sprite.pixelsPerUnit;
             float spriteH = sr.sprite.rect.height / sr.sprite.pixelsPerUnit;
             buildingGO.transform.localScale = new Vector3(targetW / spriteW, targetH / spriteH, 1f);
+            
+            // Add a BoxCollider2D so the building can receive clicks
+            var col = buildingGO.AddComponent<BoxCollider2D>();
+            col.size = new Vector2(spriteW, spriteH);
+            col.isTrigger = true;
         }
 
         // Register in WorldGrid — this is now the single source of truth
