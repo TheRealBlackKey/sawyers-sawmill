@@ -129,9 +129,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 43
-        y: 764
-        width: 921
-        height: 736
+        y: 857
+        width: 920
+        height: 643
       alignment: 7
       pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -151,9 +151,9 @@ TextureImporter:
       rect:
         serializedVersion: 2
         x: 971
-        y: 780
-        width: 1030
-        height: 667
+        y: 846
+        width: 1044
+        height: 601
       alignment: 7
       pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -172,10 +172,10 @@ TextureImporter:
       name: Ember Pine_2
       rect:
         serializedVersion: 2
-        x: 1395
-        y: 27
-        width: 921
-        height: 757
+        x: 1384
+        y: 116
+        width: 932
+        height: 668
       alignment: 7
       pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -216,10 +216,10 @@ TextureImporter:
       name: Ember Pine_4
       rect:
         serializedVersion: 2
-        x: 301
-        y: 52
-        width: 909
-        height: 700
+        x: 304
+        y: 160
+        width: 919
+        height: 592
       alignment: 7
       pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}

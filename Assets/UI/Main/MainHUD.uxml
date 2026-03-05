@@ -22,10 +22,16 @@
                     <ui:Label name="GoldLabel" class="stat-text" text="$1,250" />
                 </ui:VisualElement>
                 
-                <ui:VisualElement name="RepStat" class="stat-container" tooltip="Mill Reputation" style="margin-right: 0;">
+                <ui:VisualElement name="RepStat" class="stat-container" tooltip="Mill Reputation" style="margin-right: 0; margin-bottom: 8px;">
                     <!-- Placeholder for star/rep icon -->
-                    <ui:VisualElement class="stat-icon" />
+                    <ui:VisualElement class="stat-icon main-hud-icon-rep" />
                     <ui:Label name="RepLabel" class="stat-text" text="15 Rep" />
+                </ui:VisualElement>
+
+                <ui:VisualElement name="FuelStat" class="stat-container" tooltip="Sawdust (Fuel)" style="margin-right: 0;">
+                    <!-- Placeholder for sawdust icon -->
+                    <ui:VisualElement class="stat-icon" style="background-color: #D2B48C;" />
+                    <ui:Label name="FuelLabel" class="stat-text" text="0 Sawdust" />
                 </ui:VisualElement>
             </ui:VisualElement>
 

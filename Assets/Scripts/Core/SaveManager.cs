@@ -67,6 +67,7 @@ public class SaveManager : MonoBehaviour
         {
             data.gold            = GameManager.Instance.Gold;
             data.reputation      = GameManager.Instance.Reputation;
+            data.sawdust         = GameManager.Instance.Sawdust;
             data.currentDay      = GameManager.Instance.CurrentDay;
             data.totalItemsSold  = GameManager.Instance.TotalItemsSold;
             data.totalGoldEarned = GameManager.Instance.TotalGoldEarned;
@@ -171,7 +172,7 @@ public class SaveManager : MonoBehaviour
         if (GameManager.Instance != null)
         {
             GameManager.Instance.LoadFromSaveData(
-                data.gold, data.reputation, data.currentDay, 
+                data.gold, data.reputation, data.sawdust, data.currentDay, 
                 data.totalItemsSold, data.totalGoldEarned,
                 data.boardsProcessedKeys, data.boardsProcessedValues,
                 data.logsHarvestedKeys, data.logsHarvestedValues);

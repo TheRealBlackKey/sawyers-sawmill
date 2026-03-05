@@ -12,7 +12,11 @@ namespace Sawmill.UI
         private UIDocument _uiDocument;
         private Label _lblGold;
         private Label _lblReputation;
+        private Label _lblFuel;
         private Label _lblSystemMessage;
+
+        [Header("State")]
+        private bool _isBuildMenuOpen = false;
 
         private Button _btnInventory;
         private Button _btnBuild;
@@ -27,9 +31,15 @@ namespace Sawmill.UI
             var root = _uiDocument.rootVisualElement;
 
             // Labels
-            _lblGold = root.Q<Label>("GoldLabel");
+            _lblGold       = root.Q<Label>("GoldLabel");
             _lblReputation = root.Q<Label>("RepLabel");
-            _lblSystemMessage = root.Q<Label>("SystemMessageLabel");
+            _lblFuel       = root.Q<Label>("FuelLabel");
+
+            if (_lblGold == null || _lblReputation == null || _lblFuel == null)
+            {
+                Debug.LogWarning("[MainHUDController] Could not find GoldLabel, RepLabel, or FuelLabel.");
+            }
+            _lblSystemMessage = root.Q<Label>("SystemMessageLabel"); // Moved this line
 
             // Query buttons matches the UXML names in MainHUD.uxml
             _btnInventory = root.Q<Button>("BtnInventory");
@@ -46,6 +56,7 @@ namespace Sawmill.UI
             // Subscribe to GameManager events for live UI updates
             GameManager.OnGoldChanged += UpdateGoldUI;
             GameManager.OnReputationChanged += UpdateReputationUI;
+            GameManager.OnSawdustChanged += UpdateFuelUI;
             GameManager.OnDayChanged += ShowSystemMessage;
             GameManager.OnMarketDayBegin += () => ShowSystemMessage("Market Day has begun! Prices are up 30%!");
             GameManager.OnItemProduced += (item) => ShowSystemMessage($"Produced: {item.species.speciesName} Board");
@@ -58,6 +69,7 @@ namespace Sawmill.UI
             {
                 UpdateGoldUI(GameManager.Instance.Gold);
                 UpdateReputationUI(GameManager.Instance.Reputation);
+                UpdateFuelUI(GameManager.Instance.Sawdust);
                 ShowSystemMessage($"Day {GameManager.Instance.CurrentDay} begins...");
             }
         }
@@ -73,6 +85,7 @@ namespace Sawmill.UI
             // Unsubscribe game events
             GameManager.OnGoldChanged -= UpdateGoldUI;
             GameManager.OnReputationChanged -= UpdateReputationUI;
+            GameManager.OnSawdustChanged -= UpdateFuelUI;
             GameManager.OnDayChanged -= ShowSystemMessage;
             GameManager.OnMarketDayBegin -= () => ShowSystemMessage("Market Day has begun! Prices are up 30%!");
             GameManager.OnItemProduced -= (item) => ShowSystemMessage($"Produced: {item.species.speciesName} Board");
@@ -88,6 +101,11 @@ namespace Sawmill.UI
         private void UpdateReputationUI(float newRep)
         {
             if (_lblReputation != null) _lblReputation.text = $"{newRep:N0} Rep";
+        }
+
+        private void UpdateFuelUI(float newFuel)
+        {
+            if (_lblFuel != null) _lblFuel.text = $"{newFuel:N0} Sawdust";
         }
 
         private void ShowSystemMessage(string msg)

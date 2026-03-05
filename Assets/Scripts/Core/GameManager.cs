@@ -13,6 +13,7 @@ public class GameManager : MonoBehaviour
     // ── Events (subscribe from any system) ────────────────────────────
     public static event Action<float> OnGoldChanged;
     public static event Action<float> OnReputationChanged;
+    public static event Action<float> OnSawdustChanged;
     public static event Action<LumberItem> OnItemProduced;
     public static event Action<LumberItem, float> OnItemSold;
     public static event Action<GrainVariant, WoodSpeciesData> OnRareGrainRevealed;
@@ -47,6 +48,18 @@ public class GameManager : MonoBehaviour
 
     [SerializeField] private float maxReputation = 1000f;
     public float MaxReputation => maxReputation;
+    
+    // ── Secondary Resources ───────────────────────────────────────────
+    private float _sawdust;
+    public float Sawdust
+    {
+        get => _sawdust;
+        private set
+        {
+            _sawdust = Mathf.Max(0f, value);
+            OnSawdustChanged?.Invoke(_sawdust);
+        }
+    }
 
     // ── Time System ───────────────────────────────────────────────────
     [Header("Time")]
@@ -119,6 +132,11 @@ public class GameManager : MonoBehaviour
         TotalGoldEarned += amount;
         if (amount > HighestSingleSaleValue)
             HighestSingleSaleValue = amount;
+    }
+
+    public void AddSawdust(float amount)
+    {
+        Sawdust += amount;
     }
 
     public void AddReputation(float amount)
@@ -231,7 +249,7 @@ public class GameManager : MonoBehaviour
     // ── Save / Load (Orchestrated by SaveManager) ─────────────────────
     
     public void LoadFromSaveData(
-        float loadedGold, float loadedRep, int loadedDay,
+        float loadedGold, float loadedRep, float loadedSawdust, int loadedDay,
         int itemsSold, float goldEarned,
         List<string> bpKeys, List<int> bpValues,
         List<string> lhKeys, List<int> lhValues)
@@ -243,6 +261,7 @@ public class GameManager : MonoBehaviour
             Gold = startingGold;
 
         Reputation      = loadedRep;
+        Sawdust         = loadedSawdust;
         _currentDay     = loadedDay;
         TotalItemsSold  = itemsSold;
         TotalGoldEarned = goldEarned;

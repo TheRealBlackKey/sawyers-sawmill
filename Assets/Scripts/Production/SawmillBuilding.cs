@@ -198,7 +198,11 @@ public class SawmillBuilding : MonoBehaviour
             OnBoardMilled?.Invoke(board);
         }
 
-        Debug.Log($"[Sawmill] Milled {log.species.speciesName} log into {boardCount} boards.");
+        // Generate Sawdust byproduct (1 unit per board produced, including slabs/blanks tracked by original log capacity)
+        int sawdustYield = log.species.boardsPerLog + boardsPerLogBonus;
+        GameManager.Instance?.AddSawdust(sawdustYield);
+
+        Debug.Log($"[Sawmill] Milled {log.species.speciesName} log into {boardCount} boards and {sawdustYield} sawdust.");
 
         if (sawdustParticles != null && !sawdustParticles.isPlaying)
             sawdustParticles.Play();

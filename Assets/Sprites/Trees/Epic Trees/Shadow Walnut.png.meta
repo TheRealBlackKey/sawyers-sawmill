@@ -131,10 +131,10 @@ TextureImporter:
       name: Shadow Walnut_0
       rect:
         serializedVersion: 2
-        x: 51
-        y: 899
-        width: 793
-        height: 728
+        x: 46
+        y: 1035
+        width: 808
+        height: 600
       alignment: 7
       pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
