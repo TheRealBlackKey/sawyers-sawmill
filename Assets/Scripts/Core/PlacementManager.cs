@@ -299,7 +299,10 @@ public class PlacementManager : MonoBehaviour
 
         var sr             = buildingGO.AddComponent<SpriteRenderer>();
         sr.sprite          = _selectedBuilding.builtSprite;
-        sr.sortingOrder    = 2;
+        
+        // Buildings sort based on their bottom edge, not their center, because workers sort based on their feet
+        float bottomWorldY = worldCenter.y - (gh * WorldGrid.Instance.CellSize * 0.5f);
+        sr.sortingOrder    = Mathf.RoundToInt(-bottomWorldY * 10f);
 
         // Scale sprite to fill its grid footprint exactly
         if (sr.sprite != null)

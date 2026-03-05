@@ -161,7 +161,7 @@ public class UpgradeManager : MonoBehaviour
 
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sprite = upgrade.buildingOverlaySprite;
-        sr.sortingOrder = 2;
+        sr.sortingOrder = Mathf.RoundToInt(-go.transform.position.y * 10f) + 1; // +1 to render slightly on top of the building it belongs to
 
         // Register with ObstacleRegistry so it blocks future placement
         if (ObstacleRegistry.Instance != null)

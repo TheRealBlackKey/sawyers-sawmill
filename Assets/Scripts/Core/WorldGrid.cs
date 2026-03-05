@@ -431,7 +431,23 @@ public class WorldGrid : MonoBehaviour
         {
             int cx = gridX + dx, cy = gridY + dy;
             _cells[cx, cy].cellType   = type;
-            _cells[cx, cy].isWalkable = walkable;
+
+            bool isWalkableCell = walkable;
+            if (type == CellType.Building)
+            {
+                // Top rows are walkable so characters can walk behind the building
+                // Bottom row is obstacle (dy == h - 1 because Y increases DOWNwards)
+                if (dy < h - 1)
+                {
+                    isWalkableCell = true;
+                }
+                else
+                {
+                    isWalkableCell = false;
+                }
+            }
+
+            _cells[cx, cy].isWalkable = isWalkableCell;
             _cells[cx, cy].occupant   = occupant;
             cellList.Add(new Vector2Int(cx, cy));
         }
@@ -517,7 +533,7 @@ public class WorldGrid : MonoBehaviour
     /// </summary>
     public bool IsCellWalkableForPathfinding(GridCell cell)
     {
-        return cell.cellType != CellType.Water && cell.cellType != CellType.Boulder && cell.cellType != CellType.OldGrowthTree;
+        return cell.isWalkable;
     }
 
     public List<Vector2Int> GetEmptyCellsInRegion(int startX, int startY, int w, int h)

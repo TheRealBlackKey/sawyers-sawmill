@@ -65,11 +65,6 @@ public abstract class WorkerBase : MonoBehaviour
     protected virtual void Awake()
     {
         _spriteRenderer = GetComponent<SpriteRenderer>();
-
-        // Workers always render in front of everything including trees.
-        // Trees use Y-based sorting (Y * 10), so we use the max value to guarantee Sawyer is always on top.
-        if (_spriteRenderer != null)
-            _spriteRenderer.sortingOrder = 32000;
     }
 
     protected virtual void Start()
@@ -80,6 +75,12 @@ public abstract class WorkerBase : MonoBehaviour
     protected virtual void Update()
     {
         HandleMovement();
+        
+        if (_spriteRenderer != null)
+        {
+            // Update sorting order dynamically based on Y position so Sawyer can walk behind buildings
+            _spriteRenderer.sortingOrder = Mathf.RoundToInt(-transform.position.y * 10f);
+        }
     }
 
     // ── Task System ───────────────────────────────────────────────────
