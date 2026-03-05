@@ -4,7 +4,7 @@ using Sawmill.Core;
 
 namespace Sawmill.Production
 {
-    public class LumberjackBuilding : MonoBehaviour, IPointerClickHandler, IHoverable
+    public class LumberjackBuilding : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
     {
         [Header("Worker Settlement")]
         [Tooltip("Offset from the building center where the lumberjack will spawn.")]
@@ -91,14 +91,14 @@ namespace Sawmill.Production
             }
         }
 
-        public void OnHoverEnter()
+        public void OnPointerEnter(PointerEventData eventData)
         {
-            Sawmill.UI.CursorManager.Instance?.SetCursor(CursorType.Interact);
+            // Hover logic could go here if we had a valid CursorManager
         }
 
-        public void OnHoverExit()
+        public void OnPointerExit(PointerEventData eventData)
         {
-            Sawmill.UI.CursorManager.Instance?.SetCursor(CursorType.Pointer);
+            // Exit logic could go here
         }
     }
 }

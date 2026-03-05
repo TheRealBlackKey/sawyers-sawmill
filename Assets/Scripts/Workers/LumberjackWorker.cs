@@ -225,7 +225,7 @@ namespace Sawmill.Production
                 TreeComponent[] allSlots = zone.GetComponentsInChildren<TreeComponent>();
                 foreach (var slot in allSlots)
                 {
-                    if (slot.CurrentState == TreeState.Empty || slot.CurrentState == TreeState.Stump)
+                    if (slot.State == TreeState.Empty || slot.State == TreeState.Stump)
                     {
                         Vector2Int slotGridPos = WorldGrid.Instance.WorldToGrid(slot.transform.position);
                         if (Mathf.Abs(slotGridPos.x - homeGridPos.x) <= radius && 
