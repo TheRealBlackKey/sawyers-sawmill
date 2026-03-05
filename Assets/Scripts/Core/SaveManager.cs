@@ -83,6 +83,14 @@ public class SaveManager : MonoBehaviour
                 data.logsHarvestedValues.Add(kvp.Value);
         }
 
+        // 1.5 Map Generation Seeds
+        if (WorldGrid.Instance != null)
+            data.obstacleSeed = WorldGrid.Instance.obstacleSeed;
+            
+        var tileManager = FindFirstObjectByType<Sawmill.Core.WorldTileManager>();
+        if (tileManager != null)
+            data.noiseSeed = tileManager.noiseSeed;
+
         // 2. Buildings
         if (PlacementManager.Instance != null)
         {
@@ -169,6 +177,20 @@ public class SaveManager : MonoBehaviour
                 data.logsHarvestedKeys, data.logsHarvestedValues);
         }
 
+        // 1.5 Procedural Map Regeneration
+        if (WorldGrid.Instance != null)
+        {
+            WorldGrid.Instance.obstacleSeed = data.obstacleSeed;
+            WorldGrid.Instance.RegenerateObstacles();
+        }
+
+        var tileManager = FindFirstObjectByType<Sawmill.Core.WorldTileManager>();
+        if (tileManager != null)
+        {
+            tileManager.noiseSeed = data.noiseSeed;
+            tileManager.GenerateTiles();
+        }
+
         // 2. Buildings
         if (PlacementManager.Instance != null)
         {
@@ -223,6 +245,10 @@ public class SaveData
     public int   currentDay;
     public int   totalItemsSold;
     public float totalGoldEarned;
+
+    // Seeds for procedural generation
+    public int   obstacleSeed;
+    public float noiseSeed;
 
     public List<string> boardsProcessedKeys   = new List<string>();
     public List<int>    boardsProcessedValues = new List<int>();

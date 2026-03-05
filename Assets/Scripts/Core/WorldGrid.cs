@@ -22,7 +22,7 @@ public class WorldGrid : MonoBehaviour
 
     [Header("Obstacle Generation")]
     [SerializeField] private bool randomizeSeedOnStart = true;
-    [SerializeField] private int  obstacleSeed         = 42;
+    public int obstacleSeed { get; set; } = 42;
 
     [Header("Obstacle Counts")]
     [SerializeField] private int boulderCount       = 6;
@@ -559,6 +559,16 @@ public class WorldGrid : MonoBehaviour
                 return new Vector2Int(cx, cy);
         }
         return new Vector2Int(-1, -1);
+    }
+
+    public void RegenerateObstacles()
+    {
+        // First wipe the grid clean of any current obstacles
+        InitializeGrid();
+        
+        // Then regenerate them using the newly set seed
+        GenerateObstacles();
+        Debug.Log($"[WorldGrid] Regenerated obstacles using seed: {obstacleSeed}");
     }
 
     // ── Gizmos ────────────────────────────────────────────────────────

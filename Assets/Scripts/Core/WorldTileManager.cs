@@ -52,7 +52,7 @@ namespace Sawmill.Core
 
         [Header("Organic Clustering (Perlin)")]
         [SerializeField] private float noiseScale = 0.15f;
-        [SerializeField] private float noiseSeed = 1000f;
+        public float noiseSeed { get; set; } = 1000f;
 
         [Header("Tile Spacing & Scale")]
         [Tooltip("How many logic grid cells a single visual tile covers (e.g. 2 = 1 tile covers 2x2 grid cells)")]
