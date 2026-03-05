@@ -1,10 +1,9 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 using Sawmill.Core;
 
 namespace Sawmill.Production
 {
-    public class LumberjackBuilding : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
+    public class LumberjackBuilding : MonoBehaviour
     {
         [Header("Worker Settlement")]
         [Tooltip("Offset from the building center where the lumberjack will spawn.")]
@@ -80,25 +79,39 @@ namespace Sawmill.Production
             Debug.Log($"[LumberjackBuilding] Spawned lumberjack at {spawnPos} with effect radius {EffectRadius}");
         }
 
-        // ── Interaction ───────────────────────────────────────────────────
+        private Camera _mainCamera;
 
-        public void OnPointerClick(PointerEventData eventData)
+        private void Start()
         {
-            if (eventData.button == PointerEventData.InputButton.Left)
+            _mainCamera = Camera.main;
+        }
+
+        private void Update()
+        {
+            if (UnityEngine.InputSystem.Mouse.current != null && UnityEngine.InputSystem.Mouse.current.leftButton.wasPressedThisFrame)
             {
-                // To keep this generic, tell UIManager to open the Lumberjack Menu
-                UI.UIManager.Instance?.OpenLumberjackMenu(this);
+                if (_mainCamera == null) return;
+                
+                // Don't register clicks if UI is intercepting (or we are painting/building)
+                if (UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+                    return;
+
+                Vector2 screenPosition = UnityEngine.InputSystem.Mouse.current.position.ReadValue();
+                Vector3 worldPosition = _mainCamera.ScreenToWorldPoint(screenPosition);
+                // Cast a tiny ray exactly where the mouse is in 2D
+                RaycastHit2D hit = Physics2D.Raycast(worldPosition, Vector2.zero);
+
+                if (hit.collider != null && hit.collider.gameObject == this.gameObject)
+                {
+                    HandleBuildingClick();
+                }
             }
         }
 
-        public void OnPointerEnter(PointerEventData eventData)
+        private void HandleBuildingClick()
         {
-            // Hover logic could go here if we had a valid CursorManager
-        }
-
-        public void OnPointerExit(PointerEventData eventData)
-        {
-            // Exit logic could go here
+            // Tell UIManager to open the Lumberjack Menu
+            UI.UIManager.Instance?.OpenLumberjackMenu(this);
         }
     }
 }
