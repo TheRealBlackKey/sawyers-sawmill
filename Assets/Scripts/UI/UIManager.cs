@@ -17,6 +17,9 @@ namespace Sawmill.UI
         [Tooltip("The GameObject containing the FurnitureCreator UIDocument")]
         [SerializeField] private GameObject furnitureCreatorScreen;
 
+        [Tooltip("Controller for the Lumberjack UI")]
+        [SerializeField] private LumberjackUIController lumberjackController;
+
         public static UIManager Instance { get; private set; }
 
         public bool IsAnyMenuOpen => 
@@ -65,12 +68,32 @@ namespace Sawmill.UI
             else Debug.LogWarning("UIManager: FurnitureCreatorScreen is not assigned in the Inspector!");
         }
 
+        public void OpenLumberjackMenu(Sawmill.Production.LumberjackBuilding building)
+        {
+            CloseAllMenus();
+            if (lumberjackController != null)
+            {
+                // Ensure the GameObject is active so the UIDocument renders
+                lumberjackController.gameObject.SetActive(true);
+                lumberjackController.OpenMenu(building);
+            }
+            else
+            {
+                Debug.LogWarning("UIManager: LumberjackUIController is not assigned in the Inspector!");
+            }
+        }
+
         public void CloseAllMenus()
         {
             if (woodInventoryScreen != null) woodInventoryScreen.SetActive(false);
             if (buildMenuScreen != null) buildMenuScreen.SetActive(false);
             if (plantingMenuScreen != null) plantingMenuScreen.SetActive(false);
             if (furnitureCreatorScreen != null) furnitureCreatorScreen.SetActive(false);
+            if (lumberjackController != null) 
+            {
+                lumberjackController.CloseMenu();
+                lumberjackController.gameObject.SetActive(false);
+            }
             
             // Cancel any active grid-based tools so they don't block clicks or persist across menus
             if (PlacementManager.Instance != null && PlacementManager.Instance.IsPlacing)

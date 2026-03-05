@@ -15,8 +15,6 @@ namespace Sawmill.UI
         private Label _lblFuel;
         private Label _lblSystemMessage;
 
-        [Header("State")]
-        private bool _isBuildMenuOpen = false;
 
         private Button _btnInventory;
         private Button _btnBuild;

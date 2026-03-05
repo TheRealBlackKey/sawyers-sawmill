@@ -5,15 +5,24 @@ using Sawmill.Core;
 
 namespace Sawmill.Production
 {
+    public enum WorkerRole
+    {
+        Feller,
+        Hauler,
+        Forester
+    }
+
     /// <summary>
     /// AI Logic for the Lumberjack helper.
     /// Operates out of the Lumberjack Quarters.
-    /// Priority 1 (Stockpile -> Sawmill): If logs exist in the Stockpile, carry them to the Sawmill.
-    /// Priority 2 (Harvest): If no logs exist, find the nearest mature tree within the Quarters' radius and chop it.
+    /// Can be specialized as a Feller (chops only), Hauler (moves logs only), or Forester (plants only).
     /// </summary>
     public class LumberjackWorker : WorkerBase
     {
         public LumberjackBuilding HomeBuilding;
+
+        [Header("Specialization Role")]
+        public WorkerRole CurrentRole = WorkerRole.Feller;
 
         [Header("Lumberjack Stats")]
         [SerializeField] private float taskScanInterval = 1f;
@@ -28,6 +37,37 @@ namespace Sawmill.Production
         {
             base.Start();
             _sawmill = FindFirstObjectByType<SawmillBuilding>();
+
+            // Temporarily assign a color based on role for testing/clarity
+            SetRoleColor();
+        }
+
+        private void SetRoleColor()
+        {
+            if (_spriteRenderer != null)
+            {
+                switch (CurrentRole)
+                {
+                    case WorkerRole.Feller:
+                        _spriteRenderer.color = new Color(1f, 0.7f, 0.7f); // Light Red
+                        break;
+                    case WorkerRole.Hauler:
+                        _spriteRenderer.color = new Color(0.7f, 0.7f, 1f); // Light Blue
+                        break;
+                    case WorkerRole.Forester:
+                        _spriteRenderer.color = new Color(0.7f, 1f, 0.7f); // Light Green
+                        break;
+                }
+            }
+        }
+
+        public void SetRole(WorkerRole newRole)
+        {
+            CurrentRole = newRole;
+            SetRoleColor();
+            _taskQueue.Clear(); // Cancel current pending tasks
+            CurrentTask = null; // Re-evaluate immediately
+            AssignDefaultTasks();
         }
 
         protected override void Update()
@@ -36,7 +76,7 @@ namespace Sawmill.Production
 
             if (_harvesting) return;
 
-            if (CurrentState == WorkerState.Idle && _taskQueue.Count == 0)
+            if (CurrentState == WorkerState.Idle && _taskQueue.Count == 0 && CurrentTask == null)
             {
                 _scanTimer += Time.deltaTime;
                 if (_scanTimer >= taskScanInterval)
@@ -62,124 +102,159 @@ namespace Sawmill.Production
                 return;
             }
 
-            // ── Priority 1: Logs → Sawmill ────────────────────────────
+            Vector3 homeWorldPos = HomeBuilding.transform.position;
+            Vector2Int homeGridPos = WorldGrid.Instance.WorldToGrid(homeWorldPos);
+            int radius = HomeBuilding.EffectRadius;
+            var allZones = FindObjectsByType<ForestZone>(FindObjectsSortMode.None);
+
+            switch (CurrentRole)
+            {
+                case WorkerRole.Hauler:
+                    AssignHaulerTask(inv, homeGridPos, radius, allZones);
+                    break;
+                case WorkerRole.Feller:
+                    AssignFellerTask(homeGridPos, radius, allZones);
+                    break;
+                case WorkerRole.Forester:
+                    AssignForesterTask(homeGridPos, radius, allZones);
+                    break;
+            }
+        }
+
+        private void AssignHaulerTask(InventoryManager inv, Vector2Int homeGridPos, int radius, ForestZone[] allZones)
+        {
             if (_sawmill == null) _sawmill = FindFirstObjectByType<SawmillBuilding>();
-            
-            if (_sawmill != null)
+            if (_sawmill == null) return;
+
+            var allLogs = inv.GetItems(InventoryManager.InventoryZone.ForestStockpile);
+            LumberItem targetLog = null;
+            ForestZone targetZone = null;
+
+            foreach (var log in allLogs)
             {
-                var allLogs = inv.GetItems(InventoryManager.InventoryZone.ForestStockpile);
-                LumberItem targetLog = null;
-                ForestZone targetZone = null;
-
-                Vector3 homeWorldPos = HomeBuilding.transform.position;
-                Vector2Int homeGridPos = WorldGrid.Instance.WorldToGrid(homeWorldPos);
-                int radius = HomeBuilding.EffectRadius;
-
-                var allZones = FindObjectsByType<ForestZone>(FindObjectsSortMode.None);
-
-                foreach (var log in allLogs)
-                {
-                    foreach (var zone in allZones)
-                    {
-                        if (zone.AssignedSpecies == log.species)
-                        {
-                            // The zone represents a painted rectangle of trees.
-                            // We check if the Lumberjack's operating area overlaps this rectangle AT ALL.
-                            RectInt zoneRect = new RectInt(zone.RegionStartX, zone.RegionStartY, zone.RegionWidth, zone.RegionHeight);
-                            RectInt lumberjackRect = new RectInt(homeGridPos.x - radius, homeGridPos.y - radius, radius * 2, radius * 2);
-
-                            if (lumberjackRect.Overlaps(zoneRect))
-                            {
-                                targetLog = log;
-                                targetZone = zone;
-                                break;
-                            }
-                        }
-                    }
-                    if (targetLog != null) break;
-                }
-
-                if (targetLog != null)
-                {
-                    var l = targetLog; var mil = _sawmill;
-                    var task = new WorkerTask(TaskType.Transport, targetZone.ForestCenter, GetBuildingBottomCenter(mil, transform.position), 0f)
-                    {
-                        targetItem       = l,
-                        hideOnCompletion = true,
-                        pickupAction     = () => 
-                        {
-                            inv.RemoveItem(l, InventoryManager.InventoryZone.ForestStockpile);
-                            targetZone?.UpdateLogPileVisual();
-                        },
-                        completionAction = (_) => { inv.AddItem(l, InventoryManager.InventoryZone.MillInput); },
-                        description      = $"[Lumberjack] Carry log to sawmill"
-                    };
-                    EnqueueTask(task);
-                    Debug.Log($"[Lumberjack] Assigned Task: {task.description}");
-                    return;
-                }
-                else
-                {
-                    Debug.Log("[Lumberjack] No logs within radius to deliver.");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("[Lumberjack] No sawmill building found on map.");
-            }
-
-            // ── Priority 2: Harvest Ready Trees within Radius ───────────────
-            {
-                var allZones = FindObjectsByType<ForestZone>(FindObjectsSortMode.None);
-                TreeComponent bestTarget = null;
-                float shortestDistance = float.MaxValue;
-                ForestZone bestZone = null;
-
-                Vector3 homeWorldPos = HomeBuilding.transform.position;
-                Vector2Int homeGridPos = WorldGrid.Instance.WorldToGrid(homeWorldPos);
-                int radius = HomeBuilding.EffectRadius;
-
                 foreach (var zone in allZones)
                 {
-                    // Scan all populated slots in the zone instead of just getting the first ready one
-                    // because we must ensure it's within our specific radius.
-                    foreach (var tree in zone.GetAllMatureTrees())
+                    if (zone.AssignedSpecies == log.species)
                     {
-                        if (tree == null || !tree.IsReadyToHarvest) continue;
+                        RectInt zoneRect = new RectInt(zone.RegionStartX, zone.RegionStartY, zone.RegionWidth, zone.RegionHeight);
+                        RectInt lumberjackRect = new RectInt(homeGridPos.x - radius, homeGridPos.y - radius, radius * 2, radius * 2);
 
-                        Vector2Int treeGridPos = WorldGrid.Instance.WorldToGrid(tree.transform.position);
-
-                        // Check if within bounds
-                        if (Mathf.Abs(treeGridPos.x - homeGridPos.x) <= radius && 
-                            Mathf.Abs(treeGridPos.y - homeGridPos.y) <= radius)
+                        if (lumberjackRect.Overlaps(zoneRect))
                         {
-                            float dist = Vector3.Distance(transform.position, tree.transform.position);
+                            targetLog = log;
+                            targetZone = zone;
+                            break;
+                        }
+                    }
+                }
+                if (targetLog != null) break;
+            }
+
+            if (targetLog != null)
+            {
+                var l = targetLog; var mil = _sawmill;
+                var task = new WorkerTask(TaskType.Transport, targetZone.ForestCenter, GetBuildingBottomCenter(mil, transform.position), 0f)
+                {
+                    targetItem       = l,
+                    hideOnCompletion = true,
+                    pickupAction     = () => 
+                    {
+                        inv.RemoveItem(l, InventoryManager.InventoryZone.ForestStockpile);
+                        targetZone?.UpdateLogPileVisual();
+                    },
+                    completionAction = (_) => { inv.AddItem(l, InventoryManager.InventoryZone.MillInput); },
+                    description      = $"[Lumberjack-Hauler] Carry log to sawmill"
+                };
+                EnqueueTask(task);
+                Debug.Log(task.description);
+            }
+        }
+
+        private void AssignFellerTask(Vector2Int homeGridPos, int radius, ForestZone[] allZones)
+        {
+            TreeComponent bestTarget = null;
+            float shortestDistance = float.MaxValue;
+            ForestZone bestZone = null;
+
+            foreach (var zone in allZones)
+            {
+                foreach (var tree in zone.GetAllMatureTrees())
+                {
+                    if (tree == null || !tree.IsReadyToHarvest) continue;
+
+                    Vector2Int treeGridPos = WorldGrid.Instance.WorldToGrid(tree.transform.position);
+
+                    if (Mathf.Abs(treeGridPos.x - homeGridPos.x) <= radius && 
+                        Mathf.Abs(treeGridPos.y - homeGridPos.y) <= radius)
+                    {
+                        float dist = Vector3.Distance(transform.position, tree.transform.position);
+                        if (dist < shortestDistance)
+                        {
+                            shortestDistance = dist;
+                            bestTarget = tree;
+                            bestZone = zone;
+                        }
+                    }
+                }
+            }
+
+            if (bestTarget != null && bestZone != null)
+            {
+                var tree = bestTarget;
+                var task = new WorkerTask(TaskType.Harvest, transform.position, tree.transform.position, 0f)
+                {
+                    asyncCompletionAction = (_) => ChopTree(tree, bestZone),
+                    description      = $"[Lumberjack-Feller] Harvest tree at {tree.transform.position}"
+                };
+                EnqueueTask(task);
+                Debug.Log(task.description);
+            }
+        }
+
+        private void AssignForesterTask(Vector2Int homeGridPos, int radius, ForestZone[] allZones)
+        {
+            TreeComponent bestSlot = null;
+            float shortestDistance = float.MaxValue;
+            ForestZone bestZone = null;
+
+            foreach (var zone in allZones)
+            {
+                // We must check if the slot is within radius
+                // Unfortunately GetEmptySlot() returns the first one it finds.
+                // We'll iterate all children of the zone to find an empty slot within radius.
+                TreeComponent[] allSlots = zone.GetComponentsInChildren<TreeComponent>();
+                foreach (var slot in allSlots)
+                {
+                    if (slot.CurrentState == TreeState.Empty || slot.CurrentState == TreeState.Stump)
+                    {
+                        Vector2Int slotGridPos = WorldGrid.Instance.WorldToGrid(slot.transform.position);
+                        if (Mathf.Abs(slotGridPos.x - homeGridPos.x) <= radius && 
+                            Mathf.Abs(slotGridPos.y - homeGridPos.y) <= radius)
+                        {
+                            float dist = Vector3.Distance(transform.position, slot.transform.position);
                             if (dist < shortestDistance)
                             {
                                 shortestDistance = dist;
-                                bestTarget = tree;
+                                bestSlot = slot;
                                 bestZone = zone;
                             }
                         }
                     }
                 }
+            }
 
-                if (bestTarget != null && bestZone != null)
+            if (bestSlot != null && bestZone != null)
+            {
+                var slot = bestSlot;
+                var z = bestZone;
+                Vector3 slotPos = slot.transform.position;
+                var task = new WorkerTask(TaskType.Planting, transform.position, slotPos, 0f)
                 {
-                    var tree = bestTarget;
-                    var task = new WorkerTask(TaskType.Harvest, transform.position, tree.transform.position, 0f)
-                    {
-                        asyncCompletionAction = (_) => ChopTree(tree, bestZone),
-                        description      = $"[Lumberjack] Harvest tree at {tree.transform.position}"
-                    };
-                    EnqueueTask(task);
-                    Debug.Log($"[Lumberjack] Assigned Task: {task.description}");
-                    return;
-                }
-                else
-                {
-                    Debug.Log($"[Lumberjack] Idling. No mature trees found within {radius} cells of quarters.");
-                }
+                    completionAction = (_) => { z.PlantInSlot(slot); },
+                    description      = $"[Lumberjack-Forester] Plant sapling at {slotPos}"
+                };
+                EnqueueTask(task);
+                Debug.Log(task.description);
             }
         }
 

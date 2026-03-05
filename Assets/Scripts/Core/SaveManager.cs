@@ -243,6 +243,7 @@ public class SaveData
     // Economy & Stats
     public float gold;
     public float reputation;
+    public float sawdust;
     public int   currentDay;
     public int   totalItemsSold;
     public float totalGoldEarned;

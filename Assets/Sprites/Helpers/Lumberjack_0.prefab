@@ -122,5 +122,7 @@ MonoBehaviour:
   kilnSpeedBonus: 0
   surfacingSpeedBonus: 0
   rareGrainChanceBonus: 0
+  logCarrySpeedMultiplier: 0.369
+  boardCarrySpeedMultiplier: 0.85
   HomeBuilding: {fileID: 0}
   taskScanInterval: 1

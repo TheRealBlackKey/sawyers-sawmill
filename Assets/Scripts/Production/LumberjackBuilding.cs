@@ -1,9 +1,10 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using Sawmill.Core;
 
 namespace Sawmill.Production
 {
-    public class LumberjackBuilding : MonoBehaviour
+    public class LumberjackBuilding : MonoBehaviour, IPointerClickHandler, IHoverable
     {
         [Header("Worker Settlement")]
         [Tooltip("Offset from the building center where the lumberjack will spawn.")]
@@ -12,7 +13,7 @@ namespace Sawmill.Production
         [HideInInspector] public GameObject LumberjackPrefab; // Populated from BuildingData
         [HideInInspector] public int EffectRadius = 5; // Populated from BuildingData
 
-        private GameObject _spawnedWorker;
+        public LumberjackWorker SpawnedWorker { get; private set; }
 
         /// <summary>
         /// Called by PlacementManager right after the component is attached.
@@ -54,31 +55,50 @@ namespace Sawmill.Production
             }
 
             Vector3 spawnPos = basePos + spawnOffset;
-            _spawnedWorker = Instantiate(LumberjackPrefab, spawnPos, Quaternion.identity);
-            _spawnedWorker.name = "Lumberjack Worker";
+            GameObject workerObj = Instantiate(LumberjackPrefab, spawnPos, Quaternion.identity);
+            workerObj.name = "Lumberjack Worker";
 
             // If we grabbed Sawyer as a fallback, we need to swap scripts
-            var sawyerScript = _spawnedWorker.GetComponent<SawyerWorker>();
+            var sawyerScript = workerObj.GetComponent<SawyerWorker>();
             if (sawyerScript != null)
             {
                 Destroy(sawyerScript); // Remove the player logic
-                var lumberjackScript = _spawnedWorker.AddComponent<LumberjackWorker>();
+                var lumberjackScript = workerObj.AddComponent<LumberjackWorker>();
                 lumberjackScript.HomeBuilding = this;
-                
-                // Temporary tint just so we know it's the lumberjack if sharing sprites
-                var sr = _spawnedWorker.GetComponent<SpriteRenderer>();
-                if (sr != null) sr.color = new Color(0.7f, 1f, 0.7f); // Light green
+                SpawnedWorker = lumberjackScript;
             }
             else
             {
-                var lumberjackScript = _spawnedWorker.GetComponent<LumberjackWorker>();
+                var lumberjackScript = workerObj.GetComponent<LumberjackWorker>();
                 if (lumberjackScript != null)
                 {
                     lumberjackScript.HomeBuilding = this;
+                    SpawnedWorker = lumberjackScript;
                 }
             }
 
             Debug.Log($"[LumberjackBuilding] Spawned lumberjack at {spawnPos} with effect radius {EffectRadius}");
+        }
+
+        // ── Interaction ───────────────────────────────────────────────────
+
+        public void OnPointerClick(PointerEventData eventData)
+        {
+            if (eventData.button == PointerEventData.InputButton.Left)
+            {
+                // To keep this generic, tell UIManager to open the Lumberjack Menu
+                UI.UIManager.Instance?.OpenLumberjackMenu(this);
+            }
+        }
+
+        public void OnHoverEnter()
+        {
+            Sawmill.UI.CursorManager.Instance?.SetCursor(CursorType.Interact);
+        }
+
+        public void OnHoverExit()
+        {
+            Sawmill.UI.CursorManager.Instance?.SetCursor(CursorType.Pointer);
         }
     }
 }

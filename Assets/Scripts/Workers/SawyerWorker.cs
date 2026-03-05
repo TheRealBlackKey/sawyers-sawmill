@@ -15,6 +15,9 @@ using Sawmill.UI;
 ///   4. Logs -> Sawmill                 (pickup ForestStockpile, drop MillInput, WAIT)
 ///   5. Plant empty tree slots          (walk to slot, plant seedling)
 ///   5.5 Clear stumps                  (walk to stump, clear it — frees the cell for building)
+///
+/// Note: In Phase 2, as players build out a specialized supply chain (Fellers, Haulers, etc.),
+/// Sawyer's generalist logic may be refactored or heavily penalized to encourage automation.
 /// </summary>
 public class SawyerWorker : WorkerBase
 {
