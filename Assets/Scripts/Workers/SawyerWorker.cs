@@ -466,7 +466,7 @@ public class SawyerWorker : WorkerBase
         
         float textTimer = 0f;
 
-        float duration = 15f * (surfacing != null ? surfacing.processingSpeedMultiplier : 1f);
+        float duration = 15f * (surfacing != null ? surfacing.speedMultiplier : 1f);
         float elapsed = 0f;
 
         while (surfacing != null && elapsed < duration)
