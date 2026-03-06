@@ -15,6 +15,13 @@ public class BuildingData : ScriptableObject
     public Sprite previewSprite;       // Shown in build menu and as ghost
     public Sprite builtSprite;         // Shown when placed in world
 
+    [Header("Art Alignment")]
+    [Tooltip("Multiplier to artificially zoom the sprite if the PNG has a lot of empty transparent padding.")]
+    public float visualScaleModifier = 1f;
+
+    [Tooltip("How many grid cells UP from the bottom edge should the depth-sorting evaluate? Base 1 for typical buildings.")]
+    public float depthSortRowOffset = 1f;
+
     [Header("Grid Footprint (in cells)")]
     [Tooltip("How many grid columns this building occupies. 1 cell = 32 world units.")]
     public int gridWidth  = 2;

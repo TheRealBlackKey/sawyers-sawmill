@@ -46,6 +46,9 @@ public class PlacementManager : MonoBehaviour
 
     private List<PlacedBuilding> _placedBuildings = new List<PlacedBuilding>();
 
+    private PlacedBuilding   _movingBuilding;
+    private Vector2Int       _originalMoveGridOrigin;
+
     public static event System.Action<PlacedBuilding> OnBuildingPlaced;
     public static event System.Action                 OnPlacementCancelled;
 
@@ -57,11 +60,61 @@ public class PlacementManager : MonoBehaviour
         if (_camera == null) _camera = Camera.main;
     }
 
+    private bool _skipInputFrame = false;
+
     private void Update()
     {
-        if (!IsPlacing) return;
-        UpdateGhostPosition();
-        HandlePlacementInput();
+        if (IsPlacing)
+        {
+            if (_skipInputFrame)
+            {
+                _skipInputFrame = false;
+                UpdateGhostPosition();
+                return;
+            }
+            
+            UpdateGhostPosition();
+            HandlePlacementInput();
+        }
+        else
+        {
+            HandleSelectionInput();
+        }
+    }
+
+    private void HandleSelectionInput()
+    {
+        var mouse = Mouse.current;
+        if (mouse == null) return;
+
+        if (mouse.rightButton.wasPressedThisFrame)
+        {
+            // Ignore if clicking UI
+            if (UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+                return;
+
+            Vector2 screenPosition = mouse.position.ReadValue();
+            Vector3 worldPosition = _camera.ScreenToWorldPoint(screenPosition);
+            RaycastHit2D hit = Physics2D.Raycast(worldPosition, Vector2.zero);
+
+            if (hit.collider != null)
+            {
+                PlacedBuilding match = _placedBuildings.Find(pb => pb.worldObject == hit.collider.gameObject);
+                if (match != null)
+                {
+                    Debug.Log($"[PlacementManager] HandleSelectionInput: Right-click hit building '{match.data.buildingName}'. Starting move!");
+                    BeginMovePlacement(match);
+                }
+                else
+                {
+                     Debug.Log($"[PlacementManager] HandleSelectionInput: Hit collider {hit.collider.name}, but it is not in _placedBuildings.");
+                }
+            }
+            else
+            {
+                Debug.Log("[PlacementManager] HandleSelectionInput: Right-click hit nothing.");
+            }
+        }
     }
 
     // ── Public API ────────────────────────────────────────────────────
@@ -98,10 +151,46 @@ public class PlacementManager : MonoBehaviour
 
     public void CancelPlacement()
     {
+        Debug.Log("[PlacementManager] CancelPlacement invoked.");
+        if (_movingBuilding != null)
+        {
+            Debug.Log("[PlacementManager] CancelPlacement: Reverting moving building.");
+            CancelMove();
+            return;
+        }
+
         IsPlacing         = false;
         _selectedBuilding = null;
         DestroyGhost();
         OnPlacementCancelled?.Invoke();
+    }
+
+    // ── Moving Existing Buildings ─────────────────────────────────────
+
+    public void BeginMovePlacement(PlacedBuilding buildingToMove)
+    {
+        _movingBuilding = buildingToMove;
+        _selectedBuilding = buildingToMove.data;
+        _originalMoveGridOrigin = buildingToMove.gridOrigin;
+        
+        // Free the grid so we can place it again
+        WorldGrid.Instance.Free(buildingToMove.worldObject);
+        
+        // Visual ghosting
+        var sr = buildingToMove.worldObject.GetComponent<SpriteRenderer>();
+        if (sr != null)
+        {
+            sr.sortingOrder = 32000; // Draw over everything while moving
+            sr.color = new Color(1f, 1f, 1f, 0.5f);
+        }
+        
+        // Disable collider so it doesn't block raycasts or workers
+        var col = buildingToMove.worldObject.GetComponent<Collider2D>();
+        if (col != null) col.enabled = false;
+        
+        IsPlacing = true;
+        _skipInputFrame = true; // Prevent the exact same right-click from immediately cancelling
+        Debug.Log($"[Placement] Relocating {_selectedBuilding.buildingName}. Right-click to cancel.");
     }
 
     // ── Ghost Preview ─────────────────────────────────────────────────
@@ -123,24 +212,23 @@ public class PlacementManager : MonoBehaviour
     {
         if (_ghostObject == null || WorldGrid.Instance == null) return;
 
-        float targetW = data.gridWidth  * WorldGrid.Instance.CellSize;
-        float targetH = data.gridHeight * WorldGrid.Instance.CellSize;
-
+        // Instead of brutally stretching the ghost to fit the grid, we calculate a uniform scale.
+        // We use the width as the baseline to ensure the footprint fits correctly, 
+        // while the height scales proportionally to preserve the art's aspect ratio (e.g., roof overhangs).
+        float targetW = data.gridWidth * WorldGrid.Instance.CellSize;
+        
         if (_ghostRenderer.sprite != null)
         {
-            float spriteW = _ghostRenderer.sprite.rect.width  / _ghostRenderer.sprite.pixelsPerUnit;
-            float spriteH = _ghostRenderer.sprite.rect.height / _ghostRenderer.sprite.pixelsPerUnit;
-            _ghostObject.transform.localScale = new Vector3(targetW / spriteW, targetH / spriteH, 1f);
-        }
-        else
-        {
-            _ghostObject.transform.localScale = new Vector3(targetW * 0.01f, targetH * 0.01f, 1f);
+            float spriteW = _ghostRenderer.sprite.rect.width / _ghostRenderer.sprite.pixelsPerUnit;
+            float uniformScale = (targetW / spriteW) * data.visualScaleModifier;
+            _ghostObject.transform.localScale = new Vector3(uniformScale, uniformScale, 1f);
         }
     }
 
     private void UpdateGhostPosition()
     {
-        if (_ghostObject == null || _camera == null || WorldGrid.Instance == null) return;
+        if (_camera == null || WorldGrid.Instance == null) return;
+        if ((_ghostObject == null && _movingBuilding == null)) return;
 
         var mouse = Mouse.current;
         if (mouse == null) return;
@@ -154,18 +242,30 @@ public class PlacementManager : MonoBehaviour
 
         _ghostGridPos = grid;
 
-        // World position = center of the footprint
+        // World position = center of the footprint, shifted down half a cell so the base aligns with the grid line.
         float cellSize = WorldGrid.Instance.CellSize;
         float cx = WorldGrid.Instance.GridToWorld(grid.x, grid.y).x
                    + (_selectedBuilding.gridWidth  - 1) * cellSize * 0.5f;
         float cy = WorldGrid.Instance.GridToWorld(grid.x, grid.y).y
-                   - (_selectedBuilding.gridHeight - 1) * cellSize * 0.5f;
-
-        _ghostObject.transform.position = new Vector3(cx, cy, -0.5f);
+                   - (_selectedBuilding.gridHeight) * cellSize * 0.5f; // Removed the -1 to shift it down half a cell
 
         _isValidPosition    = WorldGrid.Instance.IsBuildable(
             grid.x, grid.y, _selectedBuilding.gridWidth, _selectedBuilding.gridHeight);
-        _ghostRenderer.color = _isValidPosition ? validColor : invalidColor;
+
+        if (_movingBuilding != null)
+        {
+            _movingBuilding.worldObject.transform.position = new Vector3(cx, cy, 0f);
+            var sr = _movingBuilding.worldObject.GetComponent<SpriteRenderer>();
+            if (sr != null)
+            {
+                sr.color = _isValidPosition ? new Color(0.5f, 1f, 0.5f, 0.7f) : new Color(1f, 0.5f, 0.5f, 0.7f);
+            }
+        }
+        else
+        {
+            _ghostObject.transform.position = new Vector3(cx, cy, -0.5f);
+            _ghostRenderer.color = _isValidPosition ? validColor : invalidColor;
+        }
 
         RefreshRadiusGhostCells();
     }
@@ -175,15 +275,36 @@ public class PlacementManager : MonoBehaviour
         var mouse = Mouse.current;
         if (mouse == null) return;
 
-        if (mouse.leftButton.wasPressedThisFrame && _isValidPosition)
-            ConfirmPlacement();
+        // Prevent placing or cancelling if we clicked on a UI element
+        if (UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject())
+            return;
+
+        if (mouse.leftButton.wasPressedThisFrame)
+        {
+            if (_isValidPosition)
+            {
+                Debug.Log($"[PlacementManager] HandlePlacementInput: Left-click pressed and _isValidPosition is TRUE. Confirming.");
+                if (_movingBuilding != null) ConfirmMove();
+                else ConfirmPlacement();
+            }
+            else
+            {
+                Debug.Log($"[PlacementManager] HandlePlacementInput: Left-click pressed but _isValidPosition is FALSE.");
+            }
+        }
 
         if (mouse.rightButton.wasPressedThisFrame)
+        {
+            Debug.Log("[PlacementManager] HandlePlacementInput: Right-click pressed. Cancelling.");
             CancelPlacement();
+        }
 
         var keyboard = Keyboard.current;
         if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+        {
+            Debug.Log("[PlacementManager] HandlePlacementInput: Escape key pressed. Cancelling.");
             CancelPlacement();
+        }
     }
 
     private void DestroyGhost()
@@ -301,23 +422,36 @@ public class PlacementManager : MonoBehaviour
         sr.sprite          = _selectedBuilding.builtSprite;
         
         // Buildings sort based on their bottom edge.
-        // The cell center is the middle of the bottom-left grid block. 
-        // We push it down by a tiny margin to align with the visual base.
-        float bottomWorldY = worldCenter.y - (gh * WorldGrid.Instance.CellSize * 0.5f) - 0.5f;
+        // We shift the sort anchor UP by depthSortRowOffset (default 1 cell) so characters 
+        // standing in the bottom row of the footprint render in *front* of the building, 
+        // but render *behind* if they walk into the row above.
+        float bottomWorldY = worldCenter.y - (gh * WorldGrid.Instance.CellSize * 0.5f) + (_selectedBuilding.depthSortRowOffset * WorldGrid.Instance.CellSize);
         sr.sortingOrder    = Mathf.RoundToInt(-bottomWorldY * 10f) + 10000;
 
-        // Scale sprite to fill its grid footprint exactly
+        // --- Scale & Collider Generation ---
+        // Do NOT brutally stretch the SpriteRenderer on both axes to force it into the footprint.
+        // Calculate a uniform scale based on width to preserve the art's 1:1 aspect ratio
+        // and allow roof/vertical overhangs to extend naturally above the collision bounds.
+        
+        float targetW = gw * WorldGrid.Instance.CellSize;
+        float targetH = gh * WorldGrid.Instance.CellSize;
+
         if (sr.sprite != null)
         {
-            float targetW = gw * WorldGrid.Instance.CellSize;
-            float targetH = gh * WorldGrid.Instance.CellSize;
-            float spriteW = sr.sprite.rect.width  / sr.sprite.pixelsPerUnit;
-            float spriteH = sr.sprite.rect.height / sr.sprite.pixelsPerUnit;
-            buildingGO.transform.localScale = new Vector3(targetW / spriteW, targetH / spriteH, 1f);
-            
-            // Add a BoxCollider2D so the building can receive clicks
+            float spriteW = sr.sprite.rect.width / sr.sprite.pixelsPerUnit;
+            float uniformScale = (targetW / spriteW) * _selectedBuilding.visualScaleModifier;
+            buildingGO.transform.localScale = new Vector3(uniformScale, uniformScale, 1f);
+
+            // The BoxCollider2D represents the *mathematical* footprint on the grid,
+            // NOT the visual bounding box of the overhanging sprite.
             var col = buildingGO.AddComponent<BoxCollider2D>();
-            col.size = new Vector2(spriteW, spriteH);
+            
+            // Because the scale affects children/components, we must inverse the scale on the BoxCollider 
+            // so it stays exactly gridWidth x gridHeight in world space.
+            col.size = new Vector2(targetW / uniformScale, targetH / uniformScale);
+            
+            // Shift the BoxCollider UP by exactly half its height so its base rests on the transform anchor.
+            col.offset = new Vector2(0f, (targetH / uniformScale) * 0.5f);
             col.isTrigger = true;
         }
 
@@ -368,6 +502,96 @@ public class PlacementManager : MonoBehaviour
         DestroyGhost();
     }
 
+    private void ConfirmMove()
+    {
+        int gx = _ghostGridPos.x;
+        int gy = _ghostGridPos.y;
+        int gw = _selectedBuilding.gridWidth;
+        int gh = _selectedBuilding.gridHeight;
+
+        if (!WorldGrid.Instance.IsBuildable(gx, gy, gw, gh))
+        {
+            Debug.LogWarning("[Placement] Placement invalid at confirm time — ignoring.");
+            return;
+        }
+
+        Vector3 worldCenter = new Vector3(
+            _movingBuilding.worldObject.transform.position.x,
+            _movingBuilding.worldObject.transform.position.y,
+            0f);
+            
+        _movingBuilding.worldObject.transform.position = worldCenter;
+        
+        // Restore rendering
+        var sr = _movingBuilding.worldObject.GetComponent<SpriteRenderer>();
+        if (sr != null)
+        {
+            float bottomWorldY = worldCenter.y - (gh * WorldGrid.Instance.CellSize * 0.5f) + (_selectedBuilding.depthSortRowOffset * WorldGrid.Instance.CellSize);
+            sr.sortingOrder = Mathf.RoundToInt(-bottomWorldY * 10f) + 10000;
+            sr.color = Color.white;
+        }
+        
+        // Enable collider
+        var col = _movingBuilding.worldObject.GetComponent<Collider2D>();
+        if (col != null) col.enabled = true;
+        
+        // Re-occupy
+        WorldGrid.Instance.Occupy(gx, gy, gw, gh, CellType.Building, _movingBuilding.worldObject, walkable: false);
+        
+        _movingBuilding.gridOrigin = new Vector2Int(gx, gy);
+        _movingBuilding.center = new Vector2(worldCenter.x, worldCenter.y);
+        
+        // Re-initialize logic scripts (e.g. Surfacing Building updating I/O points)
+        if (!string.IsNullOrEmpty(_selectedBuilding.scriptTypeName))
+        {
+            System.Type scriptType = System.Type.GetType(_selectedBuilding.scriptTypeName);
+            if (scriptType != null)
+            {
+                var component = _movingBuilding.worldObject.GetComponent(scriptType);
+                if (component != null)
+                {
+                    var initMethod = scriptType.GetMethod("Initialize", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance, null, new System.Type[] { typeof(Vector3) }, null);
+                    if (initMethod != null) initMethod.Invoke(component, new object[] { worldCenter });
+                }
+            }
+        }
+        
+        Debug.Log($"[Placement] Moved {_selectedBuilding.buildingName} to ({gx},{gy}).");
+        
+        _movingBuilding = null;
+        IsPlacing = false;
+        _selectedBuilding = null;
+    }
+
+    private void CancelMove()
+    {
+        // Calculate original center world pos
+        float cx = WorldGrid.Instance.GridToWorld(_originalMoveGridOrigin.x, _originalMoveGridOrigin.y).x
+                   + (_selectedBuilding.gridWidth  - 1) * WorldGrid.Instance.CellSize * 0.5f;
+        float cy = WorldGrid.Instance.GridToWorld(_originalMoveGridOrigin.x, _originalMoveGridOrigin.y).y
+                   - (_selectedBuilding.gridHeight) * WorldGrid.Instance.CellSize * 0.5f;
+                   
+        Vector3 worldCenter = new Vector3(cx, cy, 0f);
+        _movingBuilding.worldObject.transform.position = worldCenter;
+        
+        var sr = _movingBuilding.worldObject.GetComponent<SpriteRenderer>();
+        if (sr != null)
+        {
+            float bottomWorldY = worldCenter.y - (_selectedBuilding.gridHeight * WorldGrid.Instance.CellSize * 0.5f) + (_selectedBuilding.depthSortRowOffset * WorldGrid.Instance.CellSize);
+            sr.sortingOrder = Mathf.RoundToInt(-bottomWorldY * 10f) + 10000;
+            sr.color = Color.white;
+        }
+        
+        var col = _movingBuilding.worldObject.GetComponent<Collider2D>();
+        if (col != null) col.enabled = true;
+        
+        WorldGrid.Instance.Occupy(_originalMoveGridOrigin.x, _originalMoveGridOrigin.y, _selectedBuilding.gridWidth, _selectedBuilding.gridHeight, CellType.Building, _movingBuilding.worldObject, walkable: false);
+        
+        _movingBuilding = null;
+        IsPlacing = false;
+        _selectedBuilding = null;
+    }
+
     // ── Save / Load ───────────────────────────────────────────────────
 
     public void LoadFromSaveData(List<BuildingSaveData> savedBuildings, List<BuildingData> allBuildings)
@@ -403,7 +627,7 @@ public class PlacementManager : MonoBehaviour
             float cx = WorldGrid.Instance.GridToWorld(savedData.gridX, savedData.gridY).x
                        + (match.gridWidth  - 1) * WorldGrid.Instance.CellSize * 0.5f;
             float cy = WorldGrid.Instance.GridToWorld(savedData.gridX, savedData.gridY).y
-                       - (match.gridHeight - 1) * WorldGrid.Instance.CellSize * 0.5f;
+                       - (match.gridHeight) * WorldGrid.Instance.CellSize * 0.5f; // Removed -1 to shift down half a cell
             _ghostObject.transform.position = new Vector3(cx, cy, 0f);
 
             // Temporarily suppress gold so loading doesn't bankrupt the player

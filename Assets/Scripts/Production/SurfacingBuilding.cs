@@ -23,6 +23,8 @@ public class SurfacingBuilding : MonoBehaviour
 
     [Header("Base Stats")]
     [SerializeField] private float baseSurfacingTime = 30f;
+    [Tooltip("Amount of Sawdust generated per board surfaced")]
+    [SerializeField] private float sawdustYieldPerOperation = 0.5f;
 
     // ── Upgrade slots ─────────────────────────────────────────────────
     [HideInInspector] public float speedMultiplier   = 1f;
@@ -192,6 +194,9 @@ public class SurfacingBuilding : MonoBehaviour
             board.quality = QualityGrade.Select;
         if (hasWideBeltSander && board.quality < QualityGrade.Premium && board.grainVariant?.rarityTier >= 2)
             board.quality = QualityGrade.Premium;
+
+        // Generate sawdust byproduct
+        GameManager.Instance?.AddSawdust(sawdustYieldPerOperation);
 
         InventoryManager.Instance?.AddItem(board, InventoryManager.InventoryZone.SurfacingOutput);
         GameManager.Instance?.RegisterItemProduced(board);

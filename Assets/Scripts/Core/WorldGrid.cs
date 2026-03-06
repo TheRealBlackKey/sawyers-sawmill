@@ -325,9 +325,21 @@ public class WorldGrid : MonoBehaviour
         for (int dy = 0; dy < h; dy++)
         {
             int cx = gridX + dx, cy = gridY + dy;
-            if (!InBounds(cx, cy))                           return false;
-            if (_cells[cx, cy].cellType != CellType.Empty)  return false;
-            if (_cells[cx, cy].occupant != null)             return false;
+            if (!InBounds(cx, cy)) 
+            {
+                // Debug.Log($"[WorldGrid] IsBuildable: ({cx},{cy}) is Out of Bounds.");
+                return false;
+            }
+            if (_cells[cx, cy].cellType != CellType.Empty)
+            {
+                // Debug.Log($"[WorldGrid] IsBuildable: ({cx},{cy}) cellType is {_cells[cx, cy].cellType}, not Empty.");
+                return false;
+            }
+            if (_cells[cx, cy].occupant != null)
+            {
+                // Debug.Log($"[WorldGrid] IsBuildable: ({cx},{cy}) has occupant {_cells[cx, cy].occupant.name}.");
+                return false;
+            }
         }
         return true;
     }

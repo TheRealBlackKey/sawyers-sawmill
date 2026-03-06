@@ -62,6 +62,20 @@ public abstract class WorkerBase : MonoBehaviour
     protected bool              _isMoving = false;
     protected bool              _itemPickedUp = false;
 
+    // ── Energy System ─────────────────────────────────────────────────
+    [Header("Energy & Fuel")]
+    [Tooltip("Maximum energy capacity for this worker.")]
+    [Range(10f, 500f)] public float maxEnergy = 100f;
+    
+    [Tooltip("Energy drained per real-time second while active.")]
+    [Range(0f, 10f)] public float energyDrainRate = 1f;
+    
+    [Tooltip("Does this worker require wages and sawdust fuel? Turn OFF for Sawyer.")]
+    public bool requiresFuelAndWages = true;
+
+    public float CurrentEnergy { get; protected set; }
+    public bool IsExhausted => CurrentEnergy <= 0f;
+
     private float _idleTimer = 0f;
 
     /// <summary>
@@ -73,6 +87,7 @@ public abstract class WorkerBase : MonoBehaviour
     protected virtual void Awake()
     {
         _spriteRenderer = GetComponent<SpriteRenderer>();
+        CurrentEnergy = maxEnergy;
     }
 
     protected virtual void Start()
@@ -82,7 +97,37 @@ public abstract class WorkerBase : MonoBehaviour
 
     protected virtual void Update()
     {
-        HandleMovement();
+        if (requiresFuelAndWages)
+        {
+            // Energy drain applies whether walking or working, but not while idle/wandering
+            if (CurrentState == WorkerState.Walking || CurrentState == WorkerState.Working)
+            {
+                CurrentEnergy -= energyDrainRate * Time.deltaTime;
+                CurrentEnergy = Mathf.Max(0f, CurrentEnergy);
+            }
+        }
+
+        if (IsExhausted && requiresFuelAndWages)
+        {
+            // Halt immediately
+            _isMoving = false;
+            CurrentState = WorkerState.Idle; // Or a dedicated exhausted state if added to enum later
+            
+            // Allow them to still pulse and attempt to find a Mess Hall if idle
+            if (_taskQueue.Count == 0 && CurrentTask == null)
+            {
+                _idleTimer += Time.deltaTime;
+                if (_idleTimer >= 2f) // Check every 2 seconds while exhausted
+                {
+                    _idleTimer = 0f;
+                    AssignDefaultTasks(); 
+                }
+            }
+        }
+        else
+        {
+            HandleMovement();
+        }
         
         if (_spriteRenderer != null && _spriteRenderer.sprite != null)
         {
@@ -112,8 +157,32 @@ public abstract class WorkerBase : MonoBehaviour
     {
         while (true)
         {
-            if (_taskQueue.Count > 0)
+            if (IsExhausted)
             {
+                // If exhausted, we can ONLY accept Refuel tasks.
+                if (_taskQueue.Count > 0 && _taskQueue.Peek().taskType == TaskType.Move)
+                {
+                    // Allow the Move/Refuel task to process by skipping the stall
+                }
+                else if (CurrentTask != null && CurrentTask.taskType == TaskType.Move)
+                {
+                    // Already executing the refuel task, let it continue
+                }
+                else
+                {
+                    // Stay idle, refuse normal work
+                    if (_taskQueue.Count > 0) _taskQueue.Clear(); // Clear irrelevant tasks so the AI tries again
+                    if (CurrentTask != null) CurrentTask = null; // Drop current work
+                    
+                    CurrentState = WorkerState.Idle;
+                    yield return new WaitForSeconds(1f);
+                    continue;
+                }
+            }
+
+            if (CurrentTask == null && _taskQueue.Count > 0)
+            {
+                SetVisible(true); // Failsafe in case a task hid them and got interrupted
                 _idleTimer   = 0f;
                 CurrentTask  = _taskQueue.Dequeue();
                 CurrentState = WorkerState.Walking;
@@ -430,6 +499,21 @@ public abstract class WorkerBase : MonoBehaviour
         return new Vector3(building.transform.position.x, fallback.y, 0f);
     }
 
+    // ── Energy ────────────────────────────────────────────────────────
+    public void Refuel(float amount)
+    {
+        CurrentEnergy += amount;
+        if (CurrentEnergy > maxEnergy) CurrentEnergy = maxEnergy;
+    }
+
+    public void SetVisible(bool isVisible)
+    {
+        if (_spriteRenderer != null)
+        {
+            _spriteRenderer.enabled = isVisible;
+        }
+    }
+
     public abstract void AssignDefaultTasks();
 }
 
@@ -441,7 +525,8 @@ public enum TaskType
 {
     Harvest, Transport, Milling, Kiln,
     Surfacing, Finishing, Furniture, Turning, Selling,
-    Planting    // Sawyer walks to an empty tree slot and plants a seedling
+    Planting,   // Sawyer walks to an empty tree slot and plants a seedling
+    Move, Refuel
 }
 
 public class WorkerTask

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01f91b42a4b01c7438045282348a3ffb, type: 3}
+  m_Name: BD_MessHall
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingData
+  buildingName: Mess Hall
+  description: 
+  previewSprite: {fileID: -8968838702084996367, guid: 97107317b2f1bf7489a5950f57b0e11b, type: 3}
+  builtSprite: {fileID: -8968838702084996367, guid: 97107317b2f1bf7489a5950f57b0e11b, type: 3}
+  visualScaleModifier: 1
+  depthSortRowOffset: 1
+  gridWidth: 2
+  gridHeight: 2
+  effectRadius: 0
+  helperPrefab: {fileID: 0}
+  footprintSize: {x: 80, y: 50}
+  goldCost: 100
+  reputationRequired: 0
+  logsHarvestedRequired: 0
+  requiredBuildings: []
+  category: 4
+  canPlaceNearWater: 0
+  scriptTypeName: Sawmill.Production.MessHallBuilding

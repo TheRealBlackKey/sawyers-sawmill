@@ -139,6 +139,13 @@ public class GameManager : MonoBehaviour
         Sawdust += amount;
     }
 
+    public bool RemoveSawdust(float amount)
+    {
+        if (Sawdust < amount) return false;
+        Sawdust -= amount;
+        return true;
+    }
+
     public void AddReputation(float amount)
     {
         Reputation += amount;
@@ -191,7 +198,12 @@ public class GameManager : MonoBehaviour
         return TotalLogsHarvested.TryGetValue(species.speciesName, out int count) ? count : 0;
     }
 
-    // ── Day / Market Cycle ────────────────────────────────────────────
+    // ── Day / Market / Wage Cycle ──────────────────────────────────────
+    [Header("Wages")]
+    [Tooltip("Amount of Gold deducted per active worker every 7 in-game days.")]
+    public float weeklyWorkerWage = 5f;
+    public static event Action OnWorkersOnStrike;
+
     private void TickDayCycle()
     {
         _dayTimer += Time.deltaTime;
@@ -204,6 +216,12 @@ public class GameManager : MonoBehaviour
             bool wasMarketDay = _isMarketDay;
             _isMarketDay = (_currentDay % marketDayInterval == 0);
 
+            // Payday / Wage Deduction
+            if (_isMarketDay)
+            {
+                ProcessWeeklyWages();
+            }
+
             if (_isMarketDay && !wasMarketDay)
             {
                 OnMarketDayBegin?.Invoke();
@@ -214,6 +232,35 @@ public class GameManager : MonoBehaviour
             {
                 OnMarketDayEnd?.Invoke();
             }
+        }
+    }
+
+    private void ProcessWeeklyWages()
+    {
+        // Find all active workers in the scene
+        var allWorkers = FindObjectsByType<WorkerBase>(FindObjectsSortMode.None);
+        int paidWorkersCount = 0;
+        
+        foreach(var w in allWorkers)
+        {
+            if (w.requiresFuelAndWages) paidWorkersCount++;
+        }
+
+        float totalWageCost = paidWorkersCount * weeklyWorkerWage;
+
+        // Skip if no cost (e.g., Sawyer alone might not cost wages, but for now we charge for all)
+        if (totalWageCost <= 0) return;
+
+        if (SpendGold(totalWageCost))
+        {
+            Debug.Log($"[GameManager] Paid weekly wages: {totalWageCost}g for {paidWorkersCount} workers.");
+            HUDManager.Instance?.ShowNotification("Wages Paid", $"Paid ${totalWageCost} to {paidWorkersCount} workers.", Color.white);
+        }
+        else
+        {
+            Debug.LogWarning($"[GameManager] Cannot afford {totalWageCost}g wages! Strike!");
+            HUDManager.Instance?.ShowNotification("STRIKE!", "Could not pay weekly wages! Workers are striking!", new Color(0.8f, 0.2f, 0.2f));
+            OnWorkersOnStrike?.Invoke();
         }
     }
 

@@ -18,8 +18,12 @@ MonoBehaviour:
     far more at market."
   previewSprite: {fileID: 385431221516756604, guid: 42fd6e389c626734db977d6e64b8bcb9, type: 3}
   builtSprite: {fileID: 385431221516756604, guid: 42fd6e389c626734db977d6e64b8bcb9, type: 3}
+  visualScaleModifier: 1
+  depthSortRowOffset: 1
   gridWidth: 3
   gridHeight: 2
+  effectRadius: 0
+  helperPrefab: {fileID: 0}
   footprintSize: {x: 60, y: 40}
   goldCost: 120
   reputationRequired: 0

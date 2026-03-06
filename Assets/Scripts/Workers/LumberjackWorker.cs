@@ -95,6 +95,35 @@ namespace Sawmill.Production
                 return;
             }
 
+            // ── Energy & Refueling Check ────────────────────────────────────
+            if (CurrentEnergy < maxEnergy * 0.3f)
+            {
+                var gm = GameManager.Instance;
+                var messHall = FindFirstObjectByType<MessHallBuilding>();
+                
+                // Only queue the refuel task if we actually have enough sawdust for at least one tick
+                if (messHall != null && gm != null && gm.Sawdust >= 1f)
+                {
+                    var task = new WorkerTask(TaskType.Move, transform.position, GetBuildingBottomCenter(messHall, transform.position), 0f)
+                    {
+                        asyncCompletionAction = (_) => messHall.HandleRefuel(this),
+                        description = $"[Lumberjack-{CurrentRole}] Traveling to Mess Hall to refuel."
+                    };
+                    EnqueueTask(task);
+                    Debug.Log(task.description);
+                    return; // Stop processing normal tasks until refueled
+                }
+                
+                // If we have no sawdust (or no mess hall), and we are completely exhausted, 
+                // don't bother trying to assign work tasks. Just idle and wait.
+                if (CurrentEnergy <= 0f)
+                {
+                    return;
+                }
+                
+                // Otherwise (energy is between 0 and 30%), we keep working until we drop!
+            }
+
             var inv = InventoryManager.Instance;
             if (inv == null)
             {

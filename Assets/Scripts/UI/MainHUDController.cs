@@ -56,8 +56,9 @@ namespace Sawmill.UI
             GameManager.OnReputationChanged += UpdateReputationUI;
             GameManager.OnSawdustChanged += UpdateFuelUI;
             GameManager.OnDayChanged += ShowSystemMessage;
-            GameManager.OnMarketDayBegin += () => ShowSystemMessage("Market Day has begun! Prices are up 30%!");
+            GameManager.OnMarketDayBegin += () => ShowSystemMessage("Market Day! Wages deducted. Prices are up 30%!");
             GameManager.OnItemProduced += (item) => ShowSystemMessage($"Produced: {item.species.speciesName} Board");
+            GameManager.OnWorkersOnStrike += () => ShowSystemMessage("WAGES UNPAID! WORKERS ON STRIKE!");
         }
 
         private void Start()
@@ -85,8 +86,9 @@ namespace Sawmill.UI
             GameManager.OnReputationChanged -= UpdateReputationUI;
             GameManager.OnSawdustChanged -= UpdateFuelUI;
             GameManager.OnDayChanged -= ShowSystemMessage;
-            GameManager.OnMarketDayBegin -= () => ShowSystemMessage("Market Day has begun! Prices are up 30%!");
+            GameManager.OnMarketDayBegin -= () => ShowSystemMessage("Market Day! Wages deducted. Prices are up 30%!");
             GameManager.OnItemProduced -= (item) => ShowSystemMessage($"Produced: {item.species.speciesName} Board");
+            GameManager.OnWorkersOnStrike -= () => ShowSystemMessage("WAGES UNPAID! WORKERS ON STRIKE!");
         }
 
         // --- Data Binding Methods ---
