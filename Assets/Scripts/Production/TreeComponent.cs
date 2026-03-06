@@ -40,6 +40,7 @@ public class TreeComponent : MonoBehaviour
     public bool IsEmpty               => State == TreeState.Empty || State == TreeState.Stump;
     public bool IsAvailableForPlanting => State == TreeState.Empty || State == TreeState.Stump;
     public bool IsStump               => State == TreeState.Stump;
+    public bool IsClaimed             { get; set; } = false;
 
     private float _growthProgress  = 0f;
     private float _currentGrowthTime;

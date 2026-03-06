@@ -26,6 +26,9 @@ public class LumberItem
     public FinishType appliedFinish = FinishType.None;
     public bool hasResinFill = false;
 
+    // ── AI Tracking ───────────────────────────────────────────────────
+    public bool IsClaimed { get; set; } = false;
+
     // ── Computed Properties ───────────────────────────────────────────
     public float CurrentMarketValue
     {

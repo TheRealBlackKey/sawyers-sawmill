@@ -561,6 +561,7 @@ public class PlacementManager : MonoBehaviour
         _movingBuilding = null;
         IsPlacing = false;
         _selectedBuilding = null;
+        ClearRadiusGhostCells();
     }
 
     private void CancelMove()
@@ -590,6 +591,7 @@ public class PlacementManager : MonoBehaviour
         _movingBuilding = null;
         IsPlacing = false;
         _selectedBuilding = null;
+        ClearRadiusGhostCells();
     }
 
     // ── Save / Load ───────────────────────────────────────────────────

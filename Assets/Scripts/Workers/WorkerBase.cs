@@ -109,19 +109,21 @@ public abstract class WorkerBase : MonoBehaviour
 
         if (IsExhausted && requiresFuelAndWages)
         {
-            // Halt immediately
-            _isMoving = false;
-            CurrentState = WorkerState.Idle; // Or a dedicated exhausted state if added to enum later
-            
-            // Allow them to still pulse and attempt to find a Mess Hall if idle
+            // Halt if idle. But if they have a task (e.g., Walk to Mess Hall), they MUST be allowed to move.
             if (_taskQueue.Count == 0 && CurrentTask == null)
             {
+                _isMoving = false;
+                CurrentState = WorkerState.Idle;
                 _idleTimer += Time.deltaTime;
                 if (_idleTimer >= 2f) // Check every 2 seconds while exhausted
                 {
                     _idleTimer = 0f;
                     AssignDefaultTasks(); 
                 }
+            }
+            else
+            {
+                HandleMovement();
             }
         }
         else
@@ -539,6 +541,7 @@ public class WorkerTask
     public System.Action               pickupAction;
     public System.Action<WorkerBase>   completionAction;
     public System.Func<WorkerBase, System.Collections.IEnumerator> asyncCompletionAction;
+    public System.Action<WorkerBase>   abortAction; // Called if the task is cancelled before completion
     public string description = "";
     
     public bool hideOnPickup = false;

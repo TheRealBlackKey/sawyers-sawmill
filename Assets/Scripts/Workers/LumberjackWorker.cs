@@ -163,7 +163,7 @@ namespace Sawmill.Production
             {
                 foreach (var zone in allZones)
                 {
-                    if (zone.AssignedSpecies == log.species)
+                    if (zone.AssignedSpecies == log.species && !log.IsClaimed)
                     {
                         RectInt zoneRect = new RectInt(zone.RegionStartX, zone.RegionStartY, zone.RegionWidth, zone.RegionHeight);
                         RectInt lumberjackRect = new RectInt(homeGridPos.x - radius, homeGridPos.y - radius, radius * 2, radius * 2);
@@ -181,6 +181,7 @@ namespace Sawmill.Production
 
             if (targetLog != null)
             {
+                targetLog.IsClaimed = true; // Reserve the log
                 var l = targetLog; var mil = _sawmill;
                 var task = new WorkerTask(TaskType.Transport, targetZone.ForestCenter, GetBuildingBottomCenter(mil, transform.position), 0f)
                 {
@@ -192,6 +193,7 @@ namespace Sawmill.Production
                         targetZone?.UpdateLogPileVisual();
                     },
                     completionAction = (_) => { inv.AddItem(l, InventoryManager.InventoryZone.MillInput); },
+                    abortAction      = (_) => { l.IsClaimed = false; },
                     description      = $"[Lumberjack-Hauler] Carry log to sawmill"
                 };
                 EnqueueTask(task);
@@ -209,7 +211,7 @@ namespace Sawmill.Production
             {
                 foreach (var tree in zone.GetAllMatureTrees())
                 {
-                    if (tree == null || !tree.IsReadyToHarvest) continue;
+                    if (tree == null || !tree.IsReadyToHarvest || tree.IsClaimed) continue;
 
                     Vector2Int treeGridPos = WorldGrid.Instance.WorldToGrid(tree.transform.position);
 
@@ -229,10 +231,12 @@ namespace Sawmill.Production
 
             if (bestTarget != null && bestZone != null)
             {
+                bestTarget.IsClaimed = true; // Reserve the tree
                 var tree = bestTarget;
                 var task = new WorkerTask(TaskType.Harvest, transform.position, tree.transform.position, 0f)
                 {
                     asyncCompletionAction = (_) => ChopTree(tree, bestZone),
+                    abortAction      = (_) => { tree.IsClaimed = false; },
                     description      = $"[Lumberjack-Feller] Harvest tree at {tree.transform.position}"
                 };
                 EnqueueTask(task);
