@@ -84,6 +84,7 @@ public class TreeComponent : MonoBehaviour
     {
         Species             = species;
         State               = TreeState.Sapling;
+        IsClaimed           = false; // Fresh trees are unclaimed
         _growthProgress     = 0f;
         _randomGrowthModifier = UnityEngine.Random.Range(0.85f, 1.15f);
         _currentGrowthTime  = species.growthTimeSeconds * _randomGrowthModifier;
@@ -171,6 +172,7 @@ public class TreeComponent : MonoBehaviour
         // Show stump — Sawyer will clear it when he comes to replant
         State           = TreeState.Stump;
         Species         = null;
+        IsClaimed       = false;
         _growthProgress = 0f;
         UpdateSprite();
 

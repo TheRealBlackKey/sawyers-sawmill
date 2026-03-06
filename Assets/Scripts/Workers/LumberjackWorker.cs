@@ -258,7 +258,7 @@ namespace Sawmill.Production
                 TreeComponent[] allSlots = zone.GetComponentsInChildren<TreeComponent>();
                 foreach (var slot in allSlots)
                 {
-                    if (slot.State == TreeState.Empty || slot.State == TreeState.Stump)
+                    if ((slot.State == TreeState.Empty || slot.State == TreeState.Stump) && !slot.IsClaimed)
                     {
                         Vector2Int slotGridPos = WorldGrid.Instance.WorldToGrid(slot.transform.position);
                         if (Mathf.Abs(slotGridPos.x - homeGridPos.x) <= radius && 
@@ -278,12 +278,14 @@ namespace Sawmill.Production
 
             if (bestSlot != null && bestZone != null)
             {
+                bestSlot.IsClaimed = true; // Claim the empty slot so others don't path here
                 var slot = bestSlot;
                 var z = bestZone;
                 Vector3 slotPos = slot.transform.position;
                 var task = new WorkerTask(TaskType.Planting, transform.position, slotPos, 0f)
                 {
                     completionAction = (_) => { z.PlantInSlot(slot); },
+                    abortAction      = (_) => { slot.IsClaimed = false; },
                     description      = $"[Lumberjack-Forester] Plant sapling at {slotPos}"
                 };
                 EnqueueTask(task);
