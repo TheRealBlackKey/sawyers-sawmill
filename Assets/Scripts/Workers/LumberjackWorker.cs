@@ -156,45 +156,59 @@ namespace Sawmill.Production
             if (_sawmill == null) return;
 
             var allLogs = inv.GetItems(InventoryManager.InventoryZone.ForestStockpile);
-            LumberItem targetLog = null;
-            ForestZone targetZone = null;
+            var candidates = new List<(LumberItem log, ForestZone zone, float value, float distance)>();
 
             foreach (var log in allLogs)
             {
+                if (log.IsClaimed) continue;
+
                 foreach (var zone in allZones)
                 {
-                    if (zone.AssignedSpecies == log.species && !log.IsClaimed)
+                    if (zone.AssignedSpecies == log.species)
                     {
                         RectInt zoneRect = new RectInt(zone.RegionStartX, zone.RegionStartY, zone.RegionWidth, zone.RegionHeight);
                         RectInt lumberjackRect = new RectInt(homeGridPos.x - radius, homeGridPos.y - radius, radius * 2, radius * 2);
 
                         if (lumberjackRect.Overlaps(zoneRect))
                         {
-                            targetLog = log;
-                            targetZone = zone;
-                            break;
+                            // Calculate metrics for sorting
+                            float value = log.species.valuePerBoardSurfaced;
+                            float distance = Vector3.Distance(transform.position, zone.ForestCenter);
+                            candidates.Add((log, zone, value, distance));
+                            break; // Stop checking zones for this log
                         }
                     }
                 }
-                if (targetLog != null) break;
             }
 
-            if (targetLog != null)
+            if (candidates.Count > 0)
             {
+                // Sort by Value (Descending), then Distance (Ascending)
+                candidates.Sort((a, b) => 
+                {
+                    int valueComparison = b.value.CompareTo(a.value);
+                    if (valueComparison != 0) return valueComparison;
+                    return a.distance.CompareTo(b.distance);
+                });
+
+                var best = candidates[0];
+                LumberItem targetLog = best.log;
+                ForestZone targetZone = best.zone;
+
                 targetLog.IsClaimed = true; // Reserve the log
-                var l = targetLog; var mil = _sawmill;
+                var mil = _sawmill;
                 var task = new WorkerTask(TaskType.Transport, targetZone.ForestCenter, GetBuildingBottomCenter(mil, transform.position), 0f)
                 {
-                    targetItem       = l,
+                    targetItem       = targetLog,
                     hideOnCompletion = true,
                     pickupAction     = () => 
                     {
-                        inv.RemoveItem(l, InventoryManager.InventoryZone.ForestStockpile);
+                        inv.RemoveItem(targetLog, InventoryManager.InventoryZone.ForestStockpile);
                         targetZone?.UpdateLogPileVisual();
                     },
-                    completionAction = (_) => { inv.AddItem(l, InventoryManager.InventoryZone.MillInput); },
-                    abortAction      = (_) => { l.IsClaimed = false; },
-                    description      = $"[Lumberjack-Hauler] Carry log to sawmill"
+                    completionAction = (_) => { inv.AddItem(targetLog, InventoryManager.InventoryZone.MillInput); },
+                    abortAction      = (_) => { targetLog.IsClaimed = false; },
+                    description      = $"[Lumberjack-Hauler] Carry {targetLog.species.speciesName} log to sawmill"
                 };
                 EnqueueTask(task);
                 Debug.Log(task.description);
@@ -203,9 +217,7 @@ namespace Sawmill.Production
 
         private void AssignFellerTask(Vector2Int homeGridPos, int radius, ForestZone[] allZones)
         {
-            TreeComponent bestTarget = null;
-            float shortestDistance = float.MaxValue;
-            ForestZone bestZone = null;
+            var candidates = new List<(TreeComponent tree, ForestZone zone, float value, float distance)>();
 
             foreach (var zone in allZones)
             {
@@ -218,26 +230,33 @@ namespace Sawmill.Production
                     if (Mathf.Abs(treeGridPos.x - homeGridPos.x) <= radius && 
                         Mathf.Abs(treeGridPos.y - homeGridPos.y) <= radius)
                     {
-                        float dist = Vector3.Distance(transform.position, tree.transform.position);
-                        if (dist < shortestDistance)
-                        {
-                            shortestDistance = dist;
-                            bestTarget = tree;
-                            bestZone = zone;
-                        }
+                        float value = zone.AssignedSpecies != null ? zone.AssignedSpecies.valuePerBoardSurfaced : 0f;
+                        float distance = Vector3.Distance(transform.position, tree.transform.position);
+                        candidates.Add((tree, zone, value, distance));
                     }
                 }
             }
 
-            if (bestTarget != null && bestZone != null)
+            if (candidates.Count > 0)
             {
-                bestTarget.IsClaimed = true; // Reserve the tree
-                var tree = bestTarget;
-                var task = new WorkerTask(TaskType.Harvest, transform.position, tree.transform.position, 0f)
+                // Sort by Value (Descending), then Distance (Ascending)
+                candidates.Sort((a, b) => 
                 {
-                    asyncCompletionAction = (_) => ChopTree(tree, bestZone),
-                    abortAction      = (_) => { tree.IsClaimed = false; },
-                    description      = $"[Lumberjack-Feller] Harvest tree at {tree.transform.position}"
+                    int valueComparison = b.value.CompareTo(a.value);
+                    if (valueComparison != 0) return valueComparison;
+                    return a.distance.CompareTo(b.distance);
+                });
+
+                var best = candidates[0];
+                TreeComponent bestTarget = best.tree;
+                ForestZone bestZone = best.zone;
+
+                bestTarget.IsClaimed = true; // Reserve the tree
+                var task = new WorkerTask(TaskType.Harvest, transform.position, bestTarget.transform.position, 0f)
+                {
+                    asyncCompletionAction = (_) => ChopTree(bestTarget, bestZone),
+                    abortAction      = (_) => { bestTarget.IsClaimed = false; },
+                    description      = $"[Lumberjack-Feller] Harvest {bestZone.AssignedSpecies?.speciesName} tree at {bestTarget.transform.position}"
                 };
                 EnqueueTask(task);
                 Debug.Log(task.description);
@@ -246,15 +265,10 @@ namespace Sawmill.Production
 
         private void AssignForesterTask(Vector2Int homeGridPos, int radius, ForestZone[] allZones)
         {
-            TreeComponent bestSlot = null;
-            float shortestDistance = float.MaxValue;
-            ForestZone bestZone = null;
+            var candidates = new List<(TreeComponent slot, ForestZone zone, float value, float distance)>();
 
             foreach (var zone in allZones)
             {
-                // We must check if the slot is within radius
-                // Unfortunately GetEmptySlot() returns the first one it finds.
-                // We'll iterate all children of the zone to find an empty slot within radius.
                 TreeComponent[] allSlots = zone.GetComponentsInChildren<TreeComponent>();
                 foreach (var slot in allSlots)
                 {
@@ -264,29 +278,35 @@ namespace Sawmill.Production
                         if (Mathf.Abs(slotGridPos.x - homeGridPos.x) <= radius && 
                             Mathf.Abs(slotGridPos.y - homeGridPos.y) <= radius)
                         {
-                            float dist = Vector3.Distance(transform.position, slot.transform.position);
-                            if (dist < shortestDistance)
-                            {
-                                shortestDistance = dist;
-                                bestSlot = slot;
-                                bestZone = zone;
-                            }
+                            float value = zone.AssignedSpecies != null ? zone.AssignedSpecies.valuePerBoardSurfaced : 0f;
+                            float distance = Vector3.Distance(transform.position, slot.transform.position);
+                            candidates.Add((slot, zone, value, distance));
                         }
                     }
                 }
             }
 
-            if (bestSlot != null && bestZone != null)
+            if (candidates.Count > 0)
             {
+                // Sort by Value (Descending), then Distance (Ascending)
+                candidates.Sort((a, b) => 
+                {
+                    int valueComparison = b.value.CompareTo(a.value);
+                    if (valueComparison != 0) return valueComparison;
+                    return a.distance.CompareTo(b.distance);
+                });
+
+                var best = candidates[0];
+                TreeComponent bestSlot = best.slot;
+                ForestZone bestZone = best.zone;
+
                 bestSlot.IsClaimed = true; // Claim the empty slot so others don't path here
-                var slot = bestSlot;
-                var z = bestZone;
-                Vector3 slotPos = slot.transform.position;
+                Vector3 slotPos = bestSlot.transform.position;
                 var task = new WorkerTask(TaskType.Planting, transform.position, slotPos, 0f)
                 {
-                    completionAction = (_) => { z.PlantInSlot(slot); },
-                    abortAction      = (_) => { slot.IsClaimed = false; },
-                    description      = $"[Lumberjack-Forester] Plant sapling at {slotPos}"
+                    completionAction = (_) => { bestZone.PlantInSlot(bestSlot); },
+                    abortAction      = (_) => { bestSlot.IsClaimed = false; },
+                    description      = $"[Lumberjack-Forester] Plant {bestZone.AssignedSpecies?.speciesName} sapling at {slotPos}"
                 };
                 EnqueueTask(task);
                 Debug.Log(task.description);

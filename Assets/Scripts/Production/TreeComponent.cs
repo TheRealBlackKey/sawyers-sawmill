@@ -167,7 +167,10 @@ public class TreeComponent : MonoBehaviour
         if (!IsReadyToHarvest) return 0;
 
         harvestedSpecies    = Species;
-        int logCount        = Species.logsPerTree;
+        
+        // Calculate yields based on GameManager multipliers
+        float yieldMultiplier = GameManager.Instance != null ? GameManager.Instance.treeYieldMultiplier : 1f;
+        int logCount = Mathf.Max(1, Mathf.RoundToInt(Species.logsPerTree * yieldMultiplier));
 
         // Show stump — Sawyer will clear it when he comes to replant
         State           = TreeState.Stump;

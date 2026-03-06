@@ -166,7 +166,15 @@ public class SawmillBuilding : MonoBehaviour
         var inv = InventoryManager.Instance;
         if (inv == null || log.species == null) return;
 
-        int boardCount = log.species.boardsPerLog + boardsPerLogBonus;
+        // Calculate potential max boards from this log
+        int maxPotentialBoards = log.species.boardsPerLog + boardsPerLogBonus;
+
+        // Apply yield multiplier
+        float yieldMultiplier = GameManager.Instance != null ? GameManager.Instance.boardYieldMultiplier : 1f;
+        int actualBoardCount = Mathf.Max(1, Mathf.RoundToInt(maxPotentialBoards * yieldMultiplier));
+        
+        // The difference is wasted as sawdust
+        int wastedBoards = maxPotentialBoards - actualBoardCount;
 
         if (canProduceLiveEdge && UnityEngine.Random.value < 0.15f)
         {
@@ -177,20 +185,20 @@ public class SawmillBuilding : MonoBehaviour
             inv.AddItem(slab, InventoryManager.InventoryZone.MillOutput);
             GameManager.Instance?.RegisterItemProduced(slab);
             OnBoardMilled?.Invoke(slab);
-            boardCount -= 2;
+            actualBoardCount -= 2;
         }
 
-        if (canProduceTurningBlanks && UnityEngine.Random.value < 0.2f && boardCount > 1)
+        if (canProduceTurningBlanks && UnityEngine.Random.value < 0.2f && actualBoardCount > 1)
         {
             var blank = new LumberItem(log.species, ProcessingStage.RoughSawn, LumberItemType.TurningBlank);
             inv.AddItem(blank, InventoryManager.InventoryZone.MillOutput);
             GameManager.Instance?.RegisterItemProduced(blank);
             OnBoardMilled?.Invoke(blank);
-            boardCount--;
+            actualBoardCount--;
         }
 
-        boardCount = Mathf.Max(1, boardCount);
-        for (int i = 0; i < boardCount; i++)
+        actualBoardCount = Mathf.Max(1, actualBoardCount);
+        for (int i = 0; i < actualBoardCount; i++)
         {
             var board = new LumberItem(log.species, ProcessingStage.RoughSawn, LumberItemType.Board);
             inv.AddItem(board, InventoryManager.InventoryZone.MillOutput);
@@ -198,11 +206,14 @@ public class SawmillBuilding : MonoBehaviour
             OnBoardMilled?.Invoke(board);
         }
 
-        // Generate Sawdust byproduct (1 unit per board produced, including slabs/blanks tracked by original log capacity)
-        int sawdustYield = log.species.boardsPerLog + boardsPerLogBonus;
-        GameManager.Instance?.AddSawdust(sawdustYield);
+        // Generate Sawdust byproduct (base yield + heavily buffed by wasted boards)
+        int baseSawdust = maxPotentialBoards;
+        int extraSawdustFromWaste = wastedBoards * 3; // Every wasted board turns into 3 sawdust
+        int totalSawdust = baseSawdust + extraSawdustFromWaste;
 
-        Debug.Log($"[Sawmill] Milled {log.species.speciesName} log into {boardCount} boards and {sawdustYield} sawdust.");
+        GameManager.Instance?.AddSawdust(totalSawdust);
+
+        Debug.Log($"[Sawmill] Milled {log.species.speciesName}: {actualBoardCount} boards, {wastedBoards} wasted, {totalSawdust} sawdust.");
 
         if (sawdustParticles != null && !sawdustParticles.isPlaying)
             sawdustParticles.Play();

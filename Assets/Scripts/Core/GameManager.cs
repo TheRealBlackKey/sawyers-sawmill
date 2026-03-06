@@ -61,6 +61,12 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    [Header("Waste Mechanics")]
+    [Tooltip("Multiplier for logs dropped per tree. 0.5 = 50% yield. Buy upgrades to reach 1.0")]
+    public float treeYieldMultiplier = 0.5f;
+    [Tooltip("Multiplier for boards produced per log. 0.5 = 50% yield. Lost boards become sawdust.")]
+    public float boardYieldMultiplier = 0.5f;
+
     // ── Time System ───────────────────────────────────────────────────
     [Header("Time")]
     [SerializeField] private float realSecondsPerGameDay = 300f; // 5 real minutes = 1 game day
