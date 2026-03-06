@@ -426,11 +426,16 @@ public class SawyerWorker : WorkerBase
         IsStationary      = true;
         if (_spriteRenderer != null) _spriteRenderer.enabled = false;
         
-        Debug.Log("[Sawyer] Running the sawmill...");
+        Debug.Log("[Sawyer] Running the sawmill for his specific log...");
         
         float textTimer = 0f;
 
-        while (sawmill != null && sawmill.IsProcessing)
+        // Rather than waiting for the entire building to finish (which might NEVER happen if Haulers keep dumping logs),
+        // Sawyer just waits the exact time it takes to process ONE log, then leaves.
+        float duration = 20f * (sawmill != null ? sawmill.millingSpeedMultiplier : 1f); 
+        float elapsed = 0f;
+
+        while (sawmill != null && elapsed < duration)
         {
             if (WorldTextManager.Instance != null && WorldTextManager.Instance.showSawingText && textTimer <= 0f)
             {
@@ -439,6 +444,7 @@ public class SawyerWorker : WorkerBase
             }
             
             if (textTimer > 0f) textTimer -= 0.25f;
+            elapsed += 0.25f;
             yield return new WaitForSeconds(0.25f);
         }
 
@@ -456,11 +462,14 @@ public class SawyerWorker : WorkerBase
         IsStationary        = true;
         if (_spriteRenderer != null) _spriteRenderer.enabled = false;
         
-        Debug.Log("[Sawyer] Working at surfacing...");
+        Debug.Log("[Sawyer] Working at surfacing for his specific board...");
         
         float textTimer = 0f;
 
-        while (surfacing != null && surfacing.IsProcessing)
+        float duration = 15f * (surfacing != null ? surfacing.processingSpeedMultiplier : 1f);
+        float elapsed = 0f;
+
+        while (surfacing != null && elapsed < duration)
         {
             if (WorldTextManager.Instance != null && WorldTextManager.Instance.showSurfacingText && textTimer <= 0f)
             {
@@ -469,6 +478,7 @@ public class SawyerWorker : WorkerBase
             }
             
             if (textTimer > 0f) textTimer -= 0.25f;
+            elapsed += 0.25f;
             yield return new WaitForSeconds(0.25f);
         }
 

@@ -131,6 +131,7 @@ public class TreeComponent : MonoBehaviour
         int logCount = Species.logsPerTree;
         State        = TreeState.Empty;
         Species      = null;
+        IsClaimed    = false;
         _growthProgress = 0f;
         UpdateSprite();
 
@@ -244,6 +245,7 @@ public class TreeComponent : MonoBehaviour
         StopPassiveTimer();
         State           = TreeState.Empty;
         Species         = null;
+        IsClaimed       = false;
         _growthProgress = 0f;
         UpdateSprite();
     }
@@ -258,6 +260,7 @@ public class TreeComponent : MonoBehaviour
         StopPassiveTimer();
         State           = TreeState.Stump;
         Species         = null;
+        IsClaimed       = false;
         _growthProgress = 0f;
         UpdateSprite();
     }
