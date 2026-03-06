@@ -47,6 +47,12 @@ namespace Sawmill.Production
 
         private void SpawnWorker(Vector3 basePos)
         {
+            if (SpawnedWorker != null)
+            {
+                Debug.Log("[LumberjackBuilding] Worker already exists. Skipping spawn on initialize (Relocation).");
+                return;
+            }
+
             if (LumberjackPrefab == null)
             {
                 Debug.LogError("[LumberjackBuilding] No helper prefab assigned in BuildingData!");
