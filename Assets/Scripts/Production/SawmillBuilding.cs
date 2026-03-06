@@ -208,7 +208,7 @@ public class SawmillBuilding : MonoBehaviour
 
         // Generate Sawdust byproduct (base yield + heavily buffed by wasted boards)
         int baseSawdust = maxPotentialBoards;
-        int extraSawdustFromWaste = wastedBoards * 3; // Every wasted board turns into 3 sawdust
+        int extraSawdustFromWaste = wastedBoards * 1; // Every wasted board turns into 1 sawdust (reduced from 3 for balance)
         int totalSawdust = baseSawdust + extraSawdustFromWaste;
 
         GameManager.Instance?.AddSawdust(totalSawdust);

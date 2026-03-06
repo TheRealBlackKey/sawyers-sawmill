@@ -146,22 +146,30 @@ public class SawyerWorker : WorkerBase
     private LumberItem PeekHighestValue(InventoryManager inv, InventoryManager.InventoryZone zone)
     {
         var all = inv.GetItems(zone);
-        if (all == null || all.Count == 0) return inv.Peek(zone);
+        if (all == null || all.Count == 0) return null;
 
         LumberItem best      = null;
         float      bestValue = -1f;
         foreach (var item in all)
         {
+            if (item.IsClaimed) continue;
             float value = item.species != null ? item.species.valuePerBoardSurfaced : 0f;
             if (value > bestValue) { bestValue = value; best = item; }
         }
-        return best ?? inv.Peek(zone);
+        return best;
     }
 
     public override void AssignDefaultTasks()
     {
         var inv = InventoryManager.Instance;
         if (inv == null) return;
+
+        bool hasForester = false;
+        var allLumberjacks = FindObjectsByType<Sawmill.Production.LumberjackWorker>(FindObjectsSortMode.None);
+        foreach (var w in allLumberjacks)
+        {
+            if (w.CurrentRole == Sawmill.Production.WorkerRole.Forester) { hasForester = true; break; }
+        }
 
         // ── Pending player request: plant a specific slot ──────────────
         // Stored by RequestPlantSlot() and consumed here when Sawyer is idle.
@@ -203,6 +211,7 @@ public class SawyerWorker : WorkerBase
 
         // ── Priority 1: Plant high-value empty slots ───────────────────
         // Always do this first — no point having oak trees not planted.
+        if (!hasForester)
         {
             var allZones   = FindObjectsByType<ForestZone>(FindObjectsSortMode.None);
             var candidates = new System.Collections.Generic.List<(ForestZone zone, TreeComponent slot, float value)>();
@@ -318,8 +327,7 @@ public class SawyerWorker : WorkerBase
                 if (bestReadyTreeValue <= bestLogValue)
                 {
                     var l = log; var mil = _sawmill;
-                    // Find the zone that owns this log's species for visual update
-                    var logZone = FindZoneForSpecies(l.species);
+                    l.IsClaimed = true; // Claim the log so haulers don't steal it out from under us
                     var task = new WorkerTask(TaskType.Transport, GetStockpilePositionForLog(log), GetBuildingBottomCenter(mil, transform.position), 0f)
                     {
                         targetItem       = l,
@@ -327,9 +335,13 @@ public class SawyerWorker : WorkerBase
                         pickupAction     = () =>
                         {
                             inv.RemoveItem(l, InventoryManager.InventoryZone.ForestStockpile);
-                            logZone?.UpdateLogPileVisual();
+                            // Update ALL zones with this species, removing their visual ghost piles
+                            foreach (var z in FindObjectsByType<ForestZone>(FindObjectsSortMode.None)) {
+                                if (z.AssignedSpecies == l.species) z.UpdateLogPileVisual();
+                            }
                         },
                         completionAction = (_) => { inv.AddItem(l, InventoryManager.InventoryZone.MillInput); StartCoroutine(WaitAtSawmill(mil)); },
+                        abortAction      = (_) => { l.IsClaimed = false; },
                         description      = $"Carry {l.species?.speciesName} log to sawmill"
                     };
                     EnqueueTask(task);
@@ -377,6 +389,7 @@ public class SawyerWorker : WorkerBase
         // ── Priority 7: Fallback Planting (Low Value) ───────────────────
         // If Sawyer has entirely run out of milling, transporting, and high-value planting work,
         // he will finally go plant the low-value species rather than standing idle.
+        if (!hasForester)
         {
             var allZones   = FindObjectsByType<ForestZone>(FindObjectsSortMode.None);
             var candidates = new System.Collections.Generic.List<(ForestZone zone, TreeComponent slot, float value)>();
