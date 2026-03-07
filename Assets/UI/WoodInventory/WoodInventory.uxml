@@ -23,4 +23,6 @@
                 </ui:ScrollView>
 
             </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
 </ui:UXML>
