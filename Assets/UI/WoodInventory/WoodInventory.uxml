@@ -13,7 +13,7 @@
             <ui:VisualElement name="BodyContainer" style="flex-direction: row; flex-grow: 1;">
                 
                 <!-- Left Panel: Species List -->
-                <ui:ScrollView name="SpeciesListScroll" mode="Vertical" horizontal-scroller-visibility="Hidden" style="width: 200px; border-right-width: 2px; border-color: var(--color-border-wood); padding-right: 8px; margin-right: 8px;">
+                <ui:ScrollView name="SpeciesListScroll" mode="Vertical" horizontal-scroller-visibility="Hidden" style="width: 200px; border-right-width: 2px; border-color: #5C4033; padding-right: 8px; margin-right: 8px;">
                     <ui:VisualElement name="SpeciesListContainer" style="flex-direction: column;" />
                 </ui:ScrollView>
 
