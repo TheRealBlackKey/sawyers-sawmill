@@ -128,12 +128,12 @@ TextureImporter:
       name: Walnut Mature_0
       rect:
         serializedVersion: 2
-        x: 57
-        y: 325
-        width: 649
-        height: 569
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
+        x: 58
+        y: 428
+        width: 660
+        height: 679
+      alignment: 0
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -150,12 +150,12 @@ TextureImporter:
       name: Walnut Mature_1
       rect:
         serializedVersion: 2
-        x: 649
-        y: 327
+        x: 807
+        y: 361
         width: 529
         height: 965
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
+      alignment: 0
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -172,12 +172,12 @@ TextureImporter:
       name: Walnut Mature_2
       rect:
         serializedVersion: 2
-        x: 994
+        x: 1424
         y: 328
         width: 822
         height: 592
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
+      alignment: 0
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -194,12 +194,12 @@ TextureImporter:
       name: Walnut Mature_3
       rect:
         serializedVersion: 2
-        x: 1666
-        y: 329
+        x: 2369
+        y: 361
         width: 544
         height: 847
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
+      alignment: 0
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -216,12 +216,12 @@ TextureImporter:
       name: Walnut Mature_4
       rect:
         serializedVersion: 2
-        x: 2174
-        y: 322
+        x: 3090
+        y: 361
         width: 567
         height: 681
-      alignment: 7
-      pivot: {x: 0.5, y: 0}
+      alignment: 0
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -238,7 +238,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: bc225f3ef16e9384da91588ef295196a
+    spriteID: 
     internalID: 0
     vertices: []
     indices: 

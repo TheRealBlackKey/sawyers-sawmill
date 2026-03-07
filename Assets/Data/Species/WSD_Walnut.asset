@@ -29,11 +29,11 @@ MonoBehaviour:
   - {fileID: -692892810801446008, guid: a9a8de43743a91a4899665494716a5c4, type: 3}
   - {fileID: 6848306492126513749, guid: a9a8de43743a91a4899665494716a5c4, type: 3}
   treeSpritesMature:
-  - {fileID: 7533144499553888880, guid: c89de5d11e3f3fb4e94ca19598b58675, type: 3}
-  - {fileID: 7533144499553888880, guid: c89de5d11e3f3fb4e94ca19598b58675, type: 3}
-  - {fileID: 7533144499553888880, guid: c89de5d11e3f3fb4e94ca19598b58675, type: 3}
-  - {fileID: 7533144499553888880, guid: c89de5d11e3f3fb4e94ca19598b58675, type: 3}
-  - {fileID: 7533144499553888880, guid: c89de5d11e3f3fb4e94ca19598b58675, type: 3}
+  - {fileID: 6559281040310582372, guid: dd77b70b056561149a43c75c4c16ecc0, type: 3}
+  - {fileID: -8286163368016257224, guid: dd77b70b056561149a43c75c4c16ecc0, type: 3}
+  - {fileID: 1733566296914801166, guid: dd77b70b056561149a43c75c4c16ecc0, type: 3}
+  - {fileID: -3027115630958807979, guid: dd77b70b056561149a43c75c4c16ecc0, type: 3}
+  - {fileID: 4847683963106149154, guid: dd77b70b056561149a43c75c4c16ecc0, type: 3}
   treeSpriteReady: {fileID: 0}
   logSprite: {fileID: 0}
   boardSprite: {fileID: 0}
