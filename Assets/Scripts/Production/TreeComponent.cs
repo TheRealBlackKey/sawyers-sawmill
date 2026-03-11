@@ -87,7 +87,12 @@ public class TreeComponent : MonoBehaviour
         IsClaimed           = false; // Fresh trees are unclaimed
         _growthProgress     = 0f;
         _randomGrowthModifier = UnityEngine.Random.Range(0.85f, 1.15f);
-        _currentGrowthTime  = species.growthTimeSeconds * _randomGrowthModifier;
+        
+        float baseTime = species.growthTimeSeconds;
+        if (GameManager.Instance != null)
+            baseTime *= GameManager.Instance.GlobalGrowthTimeMultiplier;
+            
+        _currentGrowthTime  = baseTime * _randomGrowthModifier;
         _randomScaleMultiplier = UnityEngine.Random.Range(0.85f, 1.15f);
         _chosenMatureSprite    = species.GetRandomMatureSprite();
         UpdateSprite();
@@ -235,7 +240,12 @@ public class TreeComponent : MonoBehaviour
         State              = TreeState.Sapling;
         _growthProgress    = 0f;
         _randomGrowthModifier = UnityEngine.Random.Range(0.85f, 1.15f);
-        _currentGrowthTime = species.growthTimeSeconds * forest.PassiveGrowthMultiplier * _randomGrowthModifier;
+
+        float baseTime = species.growthTimeSeconds;
+        if (GameManager.Instance != null)
+            baseTime *= GameManager.Instance.GlobalGrowthTimeMultiplier;
+
+        _currentGrowthTime  = baseTime * forest.PassiveGrowthMultiplier * _randomGrowthModifier;
         _randomScaleMultiplier = UnityEngine.Random.Range(0.85f, 1.15f);
         _chosenMatureSprite    = species.GetRandomMatureSprite();
         UpdateSprite();

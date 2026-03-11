@@ -222,6 +222,9 @@ public abstract class WorkerBase : MonoBehaviour
         // 1. Walk to source position
         yield return StartCoroutine(WalkTo(task.sourcePosition));
 
+        float actionTime = baseActionDuration;
+        if (GameManager.Instance != null) actionTime *= GameManager.Instance.GlobalActionTimeMultiplier;
+
         // 2. Pick up item at source (takes baseActionDuration)
         if (task.pickupAction != null)
         {
@@ -229,7 +232,7 @@ public abstract class WorkerBase : MonoBehaviour
             UpdateSpriteState(task, WorkerState.Working, false);
             if (task.hideOnPickup && _spriteRenderer != null) _spriteRenderer.enabled = false;
             
-            yield return new WaitForSeconds(baseActionDuration);
+            yield return new WaitForSeconds(actionTime);
             
             if (task.hideOnPickup && _spriteRenderer != null) _spriteRenderer.enabled = true;
             task.pickupAction.Invoke();
@@ -250,7 +253,9 @@ public abstract class WorkerBase : MonoBehaviour
             UpdateSpriteState(task, WorkerState.Working, task.targetItem != null);
             if (task.hideOnCompletion && _spriteRenderer != null) _spriteRenderer.enabled = false;
             
-            yield return new WaitForSeconds(ApplySpeedBonus(task.workDuration, task.taskType));
+            float scaledDuration = ApplySpeedBonus(task.workDuration, task.taskType);
+            if (GameManager.Instance != null) scaledDuration *= GameManager.Instance.GlobalActionTimeMultiplier;
+            yield return new WaitForSeconds(scaledDuration);
             
             if (task.hideOnCompletion && _spriteRenderer != null) _spriteRenderer.enabled = true;
         }
@@ -261,7 +266,7 @@ public abstract class WorkerBase : MonoBehaviour
             UpdateSpriteState(task, WorkerState.Working, task.targetItem != null);
             if (task.hideOnCompletion && _spriteRenderer != null) _spriteRenderer.enabled = false;
             
-            yield return new WaitForSeconds(baseActionDuration);
+            yield return new WaitForSeconds(actionTime);
             
             if (task.hideOnCompletion && _spriteRenderer != null) _spriteRenderer.enabled = true;
         }
@@ -327,6 +332,8 @@ public abstract class WorkerBase : MonoBehaviour
         if (!_isMoving) return;
         
         float currentSpeed = moveSpeed;
+        if (GameManager.Instance != null)
+            currentSpeed *= GameManager.Instance.GlobalMoveSpeedMultiplier;
         
         // Apply carry penalties only if we actually picked the item up
         if (CurrentState == WorkerState.Walking && CurrentTask != null && CurrentTask.targetItem != null && _itemPickedUp)

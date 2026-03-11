@@ -110,8 +110,9 @@ public class TreeInteractionHandler : MonoBehaviour
             return;
         }
 
-        float cost = zone.AssignedSpecies.saplingCost;
         var gm = GameManager.Instance;
+        float cost = zone.AssignedSpecies.saplingCost;
+        if (gm != null) cost *= gm.GlobalCostMultiplier;
 
         if (gm != null && cost > 0f)
         {
@@ -165,7 +166,11 @@ public class TreeInteractionHandler : MonoBehaviour
 
         // Cost label
         if (zone?.AssignedSpecies != null)
-            ShowCostLabel(slot, zone.AssignedSpecies.saplingCost);
+        {
+            float cost = zone.AssignedSpecies.saplingCost;
+            if (GameManager.Instance != null) cost *= GameManager.Instance.GlobalCostMultiplier;
+            ShowCostLabel(slot, cost);
+        }
     }
 
     private void ShowCostLabel(TreeComponent slot, float cost)

@@ -165,10 +165,26 @@ public class SawyerWorker : WorkerBase
         if (inv == null) return;
 
         bool hasForester = false;
+        bool hasFeller = false;
+        bool hasHauler = false;
         var allLumberjacks = FindObjectsByType<Sawmill.Production.LumberjackWorker>(FindObjectsSortMode.None);
         foreach (var w in allLumberjacks)
         {
-            if (w.CurrentRole == Sawmill.Production.WorkerRole.Forester) { hasForester = true; break; }
+            if (w.IsExhausted) continue; // Ignore exhausted workers
+            if (w.CurrentRole == Sawmill.Production.WorkerRole.Forester) hasForester = true;
+            if (w.CurrentRole == Sawmill.Production.WorkerRole.Feller) hasFeller = true;
+            if (w.CurrentRole == Sawmill.Production.WorkerRole.Hauler) hasHauler = true;
+        }
+
+        bool hasMillworker = false;
+        var allMillworkers = FindObjectsByType<Sawmill.Production.MillworkerWorker>(FindObjectsSortMode.None);
+        foreach (var w in allMillworkers)
+        {
+            if (!w.IsExhausted)
+            {
+                hasMillworker = true;
+                break;
+            }
         }
 
         // ── Pending player request: plant a specific slot ──────────────
@@ -209,8 +225,82 @@ public class SawyerWorker : WorkerBase
             if (item.species != null && item.species.valuePerBoardSurfaced > highestStockpileValue)
                 highestStockpileValue = item.species.valuePerBoardSurfaced;
 
-        // ── Priority 1: Plant high-value empty slots ───────────────────
-        // Always do this first — no point having oak trees not planted.
+
+        // ── Priority 1: Surfaced boards → Market (highest value first) ─
+        // (Always Sawyer's job, highest priority)
+        if (_market != null && inv.HasItems(InventoryManager.InventoryZone.SurfacingOutput))
+        {
+            var board = PeekHighestValue(inv, InventoryManager.InventoryZone.SurfacingOutput);
+            if (board != null)
+            {
+                var b = board; var mkt = _market; var srf = _surfacing;
+                var task = new WorkerTask(TaskType.Transport, srf?.OutputPosition ?? transform.position, mkt.InputPosition, 0f)
+                {
+                    targetItem       = b,
+                    pickupAction     = () => inv.RemoveItem(b, InventoryManager.InventoryZone.SurfacingOutput),
+                    completionAction = (_) => inv.AddItem(b, InventoryManager.InventoryZone.MarketReady),
+                    description      = $"Deliver {b.DisplayName} to market"
+                };
+                EnqueueTask(task);
+                Debug.Log($"[Sawyer] Task: {task.description}");
+                return;
+            }
+        }
+
+        // ── Priority 2: Kiln-dried boards → Surfacing (highest value first)
+        // (Always Sawyer's job, high priority)
+        if (_surfacing != null && !_surfacing.IsFull && inv.HasItems(InventoryManager.InventoryZone.KilnOutput))
+        {
+            var driedBoard = PeekHighestValue(inv, InventoryManager.InventoryZone.KilnOutput);
+            if (driedBoard != null)
+            {
+                // --- SMART ROUTING INTERCEPT ---
+                // We need to go to the Kiln to get this dried board. 
+                // Can we bring a milled board with us on the way?
+                if (!hasMillworker && _kiln != null && !_kiln.IsFull && inv.HasItems(InventoryManager.InventoryZone.MillOutput))
+                {
+                    var milledBoard = PeekHighestValue(inv, InventoryManager.InventoryZone.MillOutput);
+                    if (milledBoard != null)
+                    {
+                        // Force the Priority 4 task to execute NOW, effectively coalescing the trip
+                        var bIntercept = milledBoard; var mil = _sawmill; var klnIntercept = _kiln;
+                        var interceptTask = new WorkerTask(TaskType.Transport, GetBuildingBottomCenter(mil, transform.position), GetBuildingBottomCenter(klnIntercept, transform.position), 0f)
+                        {
+                            targetItem       = bIntercept,
+                            hideOnPickup     = true,
+                            hideOnCompletion = true,
+                            pickupAction     = () => inv.RemoveItem(bIntercept, InventoryManager.InventoryZone.MillOutput),
+                            completionAction = (_) => klnIntercept.LoadBoard(bIntercept),
+                            description      = $"[Smart Route] Carry {bIntercept.species?.speciesName} board to kiln before pickup"
+                        };
+                        EnqueueTask(interceptTask);
+                        Debug.Log($"[Sawyer] Task: {interceptTask.description}");
+                        return;
+                    }
+                }
+                // --- END SMART ROUTING INTERCEPT ---
+
+                var b = driedBoard; var kln = _kiln; var srf = _surfacing;
+                var task = new WorkerTask(TaskType.Transport, GetBuildingBottomCenter(kln, transform.position), GetBuildingBottomCenter(srf, transform.position), 0f)
+                {
+                    targetItem       = b,
+                    hideOnPickup     = true,
+                    hideOnCompletion = true,
+                    pickupAction     = () => inv.RemoveItem(b, InventoryManager.InventoryZone.KilnOutput),
+                    completionAction = (_) => { srf.ProcessBoard(b); StartCoroutine(WaitAtSurfacing(srf)); },
+                    description      = $"Carry dried {b.species?.speciesName} board to surfacing"
+                };
+                EnqueueTask(task);
+                Debug.Log($"[Sawyer] Task: {task.description}");
+                return;
+            }
+        }
+
+        // ── CONDITIONAL PRIORITIES based on whether helpers exist ─────
+        // If helpers exist for a role, Sawyer will only do that role if there's absolutely nothing else to do.
+
+        // ── Priority 3: Plant high-value empty slots ───────────────────
+        // Only if no Forester exists.
         if (!hasForester)
         {
             var allZones   = FindObjectsByType<ForestZone>(FindObjectsSortMode.None);
@@ -218,7 +308,6 @@ public class SawyerWorker : WorkerBase
             foreach (var zone in allZones)
             {
                 float value = zone.AssignedSpecies != null ? zone.AssignedSpecies.valuePerBoardSurfaced : 0f;
-                // Plant high-value species immediately
                 if (value <= valuePlantingThreshold) continue;
                 
                 TreeComponent emptySlot = zone.GetEmptySlot();
@@ -241,50 +330,10 @@ public class SawyerWorker : WorkerBase
             }
         }
 
-        // ── Priority 2: Surfaced boards → Market (highest value first) ─
-        if (_market != null && inv.HasItems(InventoryManager.InventoryZone.SurfacingOutput))
-        {
-            var board = PeekHighestValue(inv, InventoryManager.InventoryZone.SurfacingOutput);
-            if (board != null)
-            {
-                var b = board; var mkt = _market; var srf = _surfacing;
-                var task = new WorkerTask(TaskType.Transport, srf?.OutputPosition ?? transform.position, mkt.InputPosition, 0f)
-                {
-                    targetItem       = b,
-                    pickupAction     = () => inv.RemoveItem(b, InventoryManager.InventoryZone.SurfacingOutput),
-                    completionAction = (_) => inv.AddItem(b, InventoryManager.InventoryZone.MarketReady),
-                    description      = $"Deliver {b.DisplayName} to market"
-                };
-                EnqueueTask(task);
-                Debug.Log($"[Sawyer] Task: {task.description}");
-                return;
-            }
-        }
-
-        // ── Priority 1: Kiln-dried boards → Surfacing (highest value first)
-        if (_surfacing != null && !_surfacing.IsFull && inv.HasItems(InventoryManager.InventoryZone.KilnOutput))
-        {
-            var board = PeekHighestValue(inv, InventoryManager.InventoryZone.KilnOutput);
-            if (board != null)
-            {
-                var b = board; var kln = _kiln; var srf = _surfacing;
-                var task = new WorkerTask(TaskType.Transport, GetBuildingBottomCenter(kln, transform.position), GetBuildingBottomCenter(srf, transform.position), 0f)
-                {
-                    targetItem       = b,
-                    hideOnPickup     = true,
-                    hideOnCompletion = true,
-                    pickupAction     = () => inv.RemoveItem(b, InventoryManager.InventoryZone.KilnOutput),
-                    completionAction = (_) => { srf.ProcessBoard(b); StartCoroutine(WaitAtSurfacing(srf)); },
-                    description      = $"Carry dried {b.species?.speciesName} board to surfacing"
-                };
-                EnqueueTask(task);
-                Debug.Log($"[Sawyer] Task: {task.description}");
-                return;
-            }
-        }
-
-        // ── Priority 2: Milled boards → Kiln (highest value first) ─────
-        if (_kiln != null && !_kiln.IsFull && inv.HasItems(InventoryManager.InventoryZone.MillOutput))
+        // ── Priority 4: Milled boards → Kiln (highest value first) ─────
+        // Technically a Hauler or Millworker could do this, but if neither is assigned, Sawyer does it.
+        // Wait, the Millworker AI is explicitly programmed to take boards to the Kiln. So if hasMillworker is true, skip.
+        if (!hasMillworker && _kiln != null && !_kiln.IsFull && inv.HasItems(InventoryManager.InventoryZone.MillOutput))
         {
             var board = PeekHighestValue(inv, InventoryManager.InventoryZone.MillOutput);
             if (board != null)
@@ -305,15 +354,14 @@ public class SawyerWorker : WorkerBase
             }
         }
 
-        // ── Priority 3: Logs → Sawmill (highest value first) ────────────
-        // Skip if a higher-value tree is ready to harvest — cut that first,
-        // then come back to mill everything in value order.
-        if (_sawmill != null && !_sawmill.IsProcessing && inv.HasItems(InventoryManager.InventoryZone.ForestStockpile))
+        // ── Priority 5: Logs → Sawmill (highest value first) ────────────
+        // If there's no Hauler AND no Millworker. Wait, if there IS a Hauler and Millworker, the Hauler takes it there.
+        // If there is no Hauler, Sawyer acts as the Hauler.
+        if (!hasHauler && _sawmill != null && (hasMillworker || !_sawmill.IsProcessing) && inv.HasItems(InventoryManager.InventoryZone.ForestStockpile))
         {
             var log = PeekHighestValue(inv, InventoryManager.InventoryZone.ForestStockpile);
             if (log != null)
             {
-                // Check if any ready tree is more valuable than the best log we have
                 float bestLogValue = log.species != null ? log.species.valuePerBoardSurfaced : 0f;
                 float bestReadyTreeValue = 0f;
                 foreach (var zone in FindObjectsByType<ForestZone>(FindObjectsSortMode.None))
@@ -323,11 +371,10 @@ public class SawyerWorker : WorkerBase
                         bestReadyTreeValue = Mathf.Max(bestReadyTreeValue, zone.AssignedSpecies.valuePerBoardSurfaced);
                 }
 
-                // Only mill now if no more-valuable tree is waiting to be cut
-                if (bestReadyTreeValue <= bestLogValue)
+                if (bestReadyTreeValue <= bestLogValue) // Only if no better tree to cut first
                 {
                     var l = log; var mil = _sawmill;
-                    l.IsClaimed = true; // Claim the log so haulers don't steal it out from under us
+                    l.IsClaimed = true; 
                     var task = new WorkerTask(TaskType.Transport, GetStockpilePositionForLog(log), GetBuildingBottomCenter(mil, transform.position), 0f)
                     {
                         targetItem       = l,
@@ -335,12 +382,23 @@ public class SawyerWorker : WorkerBase
                         pickupAction     = () =>
                         {
                             inv.RemoveItem(l, InventoryManager.InventoryZone.ForestStockpile);
-                            // Update ALL zones with this species, removing their visual ghost piles
                             foreach (var z in FindObjectsByType<ForestZone>(FindObjectsSortMode.None)) {
                                 if (z.AssignedSpecies == l.species) z.UpdateLogPileVisual();
                             }
                         },
-                        completionAction = (_) => { inv.AddItem(l, InventoryManager.InventoryZone.MillInput); StartCoroutine(WaitAtSawmill(mil)); },
+                        completionAction = (_) => 
+                        { 
+                            if (hasMillworker)
+                            {
+                                l.IsClaimed = false;
+                                inv.AddItem(l, InventoryManager.InventoryZone.MillInput);
+                            }
+                            else
+                            {
+                                mil.StartCoroutine(mil.ProcessLog(l)); 
+                                StartCoroutine(WaitAtSawmill(mil)); 
+                            }
+                        },
                         abortAction      = (_) => { l.IsClaimed = false; },
                         description      = $"Carry {l.species?.speciesName} log to sawmill"
                     };
@@ -351,10 +409,9 @@ public class SawyerWorker : WorkerBase
             }
         }
 
-        // ── Priority 4: Harvest ready trees ─────────────────────────────
-        // Only harvest a tree if no logs of equal or higher value are already
-        // waiting to be milled. This prevents Sawyer from piling up oak logs
-        // while unprocessed oak logs already sit in the stockpile.
+        // ── Priority 6: Harvest ready trees ─────────────────────────────
+        // Only if there is no Feller.
+        if (!hasFeller)
         {
             var allZones   = FindObjectsByType<ForestZone>(FindObjectsSortMode.None);
             var candidates = new System.Collections.Generic.List<(ForestZone zone, TreeComponent tree, float value)>();
@@ -370,7 +427,6 @@ public class SawyerWorker : WorkerBase
                 candidates.Sort((a, b) => b.value.CompareTo(a.value));
                 var (forestZone, tree, val) = candidates[0];
 
-                // Don't harvest if logs of this value (or higher) already need milling
                 bool pipelineHasEqualOrHigher = highestStockpileValue >= val;
                 if (!pipelineHasEqualOrHigher)
                 {
@@ -383,6 +439,77 @@ public class SawyerWorker : WorkerBase
                     Debug.Log($"[Sawyer] Task: {task.description}");
                     return;
                 }
+            }
+        }
+
+        // ── FALLBACK PRIORITIES (Helpers exist, but are overwhelmed/idle) ──
+
+        // 6.5: Fallback Hauling (if logs are piling up and hauling is needed)
+        if (hasHauler && _sawmill != null && (hasMillworker || !_sawmill.IsProcessing) && inv.HasItems(InventoryManager.InventoryZone.ForestStockpile))
+        {
+            var log = PeekHighestValue(inv, InventoryManager.InventoryZone.ForestStockpile);
+            if (log != null)
+            {
+                var l = log; var mil = _sawmill;
+                l.IsClaimed = true; 
+                var task = new WorkerTask(TaskType.Transport, GetStockpilePositionForLog(log), GetBuildingBottomCenter(mil, transform.position), 0f)
+                {
+                    targetItem       = l,
+                    hideOnCompletion = true,
+                    pickupAction     = () =>
+                    {
+                        inv.RemoveItem(l, InventoryManager.InventoryZone.ForestStockpile);
+                        foreach (var z in FindObjectsByType<ForestZone>(FindObjectsSortMode.None)) {
+                            if (z.AssignedSpecies == l.species) z.UpdateLogPileVisual();
+                        }
+                    },
+                    completionAction = (_) => 
+                    { 
+                        if (hasMillworker)
+                        {
+                            l.IsClaimed = false;
+                            inv.AddItem(l, InventoryManager.InventoryZone.MillInput);
+                        }
+                        else
+                        {
+                            mil.StartCoroutine(mil.ProcessLog(l)); 
+                            StartCoroutine(WaitAtSawmill(mil)); 
+                        }
+                    },
+                    abortAction      = (_) => { l.IsClaimed = false; },
+                    description      = $"[Fallback] Carry {l.species?.speciesName} log to sawmill"
+                };
+                EnqueueTask(task);
+                Debug.Log($"[Sawyer] Task: {task.description}");
+                return;
+            }
+        }
+
+        // 6.6: Fallback Felling
+        if (hasFeller)
+        {
+            var allZones   = FindObjectsByType<ForestZone>(FindObjectsSortMode.None);
+            var candidates = new System.Collections.Generic.List<(ForestZone zone, TreeComponent tree, float value)>();
+            foreach (var zone in allZones)
+            {
+                float value = zone.AssignedSpecies != null ? zone.AssignedSpecies.valuePerBoardSurfaced : 0f;
+                TreeComponent readyTree = zone.GetReadyTree();
+                if (readyTree != null) candidates.Add((zone, readyTree, value));
+            }
+
+            if (candidates.Count > 0)
+            {
+                candidates.Sort((a, b) => b.value.CompareTo(a.value));
+                var (forestZone, tree, val) = candidates[0];
+
+                var task = new WorkerTask(TaskType.Harvest, transform.position, tree.transform.position, 0f)
+                {
+                    asyncCompletionAction = (_) => ChopTree(tree, forestZone),
+                    description      = $"[Fallback] Harvest {tree.Species?.speciesName} at {tree.transform.position}"
+                };
+                EnqueueTask(task);
+                Debug.Log($"[Sawyer] Task: {task.description}");
+                return;
             }
         }
 

@@ -10,24 +10,23 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 01f91b42a4b01c7438045282348a3ffb, type: 3}
-  m_Name: BD_Kiln
+  m_Name: BD_Millworker
   m_EditorClassIdentifier: Assembly-CSharp::BuildingData
-  buildingName: Kiln
-  description: Dries rough sawn lumber. Green wood warps and cracks - the kiln fixes
-    that.
-  previewSprite: {fileID: -2017347513443817687, guid: c7a393523e182304e9aabd87faec4feb, type: 3}
-  builtSprite: {fileID: -2017347513443817687, guid: c7a393523e182304e9aabd87faec4feb, type: 3}
+  buildingName: Millworker
+  description: 
+  previewSprite: {fileID: 5549005800123634798, guid: 5331f48c6fa39d74096449101e6fc2c9, type: 3}
+  builtSprite: {fileID: 5549005800123634798, guid: 5331f48c6fa39d74096449101e6fc2c9, type: 3}
   visualScaleModifier: 1
   depthSortRowOffset: 1
   gridWidth: 2
   gridHeight: 2
   effectRadius: 0
-  helperPrefab: {fileID: 0}
-  footprintSize: {x: 60, y: 40}
+  helperPrefab: {fileID: 7613261183368457720, guid: c33bbb2560e6ec54a85759c292565877, type: 3}
+  footprintSize: {x: 80, y: 50}
   goldCost: 100
   reputationRequired: 0
   logsHarvestedRequired: 0
   requiredBuildings: []
   category: 0
   canPlaceNearWater: 0
-  scriptTypeName: KilnBuilding
+  scriptTypeName: Sawmill.Production.MillworkerBuilding

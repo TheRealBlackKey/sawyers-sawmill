@@ -215,6 +215,10 @@ public class SurfacingBuilding : MonoBehaviour
         if (hasPlaner)     time *= 0.85f;
         if (hasDrumSander) time *= 0.9f;
         time *= speedMultiplier;
+
+        if (GameManager.Instance != null)
+            time *= GameManager.Instance.GlobalProcessingTimeMultiplier;
+
         return time;
     }
 

@@ -2,6 +2,8 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 
+public enum GameDifficulty { Playtest, Easy, Normal, Hard }
+
 /// <summary>
 /// Central game manager singleton. Owns global state, coordinates between systems,
 /// and handles save/load. Place on a persistent GameObject in your bootstrap scene.
@@ -20,6 +22,17 @@ public class GameManager : MonoBehaviour
     public static event Action<string> OnDayChanged;         // Day/night cycle events
     public static event Action OnMarketDayBegin;
     public static event Action OnMarketDayEnd;
+
+    // ── Game Difficulty ───────────────────────────────────────────────
+    [Header("Difficulty")]
+    public GameDifficulty currentDifficulty = GameDifficulty.Normal;
+    
+    // Multipliers exposed to other systems based on difficulty
+    public float GlobalMoveSpeedMultiplier { get; private set; } = 1f;
+    public float GlobalActionTimeMultiplier { get; private set; } = 1f;
+    public float GlobalProcessingTimeMultiplier { get; private set; } = 1f;
+    public float GlobalGrowthTimeMultiplier { get; private set; } = 1f;
+    public float GlobalCostMultiplier { get; private set; } = 1f;
 
     // ── Economy State ─────────────────────────────────────────────────
     [Header("Economy")]
@@ -102,6 +115,8 @@ public class GameManager : MonoBehaviour
         }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+
+        ApplyDifficultyPreset(true); // Apply multipliers on awake
     }
 
     [Header("Testing")]
@@ -110,6 +125,9 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        // Force the preset again on Start just in case Inspector changed it
+        ApplyDifficultyPreset(ignoreSaveOnStart || TotalItemsSold == 0);
+
         // Don't auto-set Gold here if loading a game
         if (ignoreSaveOnStart)
         {
@@ -117,6 +135,51 @@ public class GameManager : MonoBehaviour
         }
         
         RollTrendingSpecies();
+    }
+
+    // ── Difficulty Handler ────────────────────────────────────────────
+    public void ApplyDifficultyPreset(bool applyGold)
+    {
+        switch (currentDifficulty)
+        {
+            case GameDifficulty.Playtest:
+                if (applyGold) startingGold = 1500f;
+                weeklyWorkerWage = 0f;
+                GlobalMoveSpeedMultiplier = 2.0f;
+                GlobalActionTimeMultiplier = 0.1f;
+                GlobalProcessingTimeMultiplier = 0.1f;
+                GlobalGrowthTimeMultiplier = 0.5f;
+                GlobalCostMultiplier = 0f;
+                break;
+            case GameDifficulty.Easy:
+                if (applyGold) startingGold = 200f;
+                weeklyWorkerWage = 2f;
+                GlobalMoveSpeedMultiplier = 1.25f;
+                GlobalActionTimeMultiplier = 0.75f;
+                GlobalProcessingTimeMultiplier = 0.75f;
+                GlobalGrowthTimeMultiplier = 0.8f;
+                GlobalCostMultiplier = 0.5f;
+                break;
+            case GameDifficulty.Normal:
+                if (applyGold) startingGold = 100f;
+                weeklyWorkerWage = 5f;
+                GlobalMoveSpeedMultiplier = 1f;
+                GlobalActionTimeMultiplier = 1f;
+                GlobalProcessingTimeMultiplier = 1f;
+                GlobalGrowthTimeMultiplier = 1f;
+                GlobalCostMultiplier = 1f;
+                break;
+            case GameDifficulty.Hard:
+                if (applyGold) startingGold = 15f;
+                weeklyWorkerWage = 10f;
+                GlobalMoveSpeedMultiplier = 0.8f;
+                GlobalActionTimeMultiplier = 1.5f;
+                GlobalProcessingTimeMultiplier = 1.5f;
+                GlobalGrowthTimeMultiplier = 2.0f;
+                GlobalCostMultiplier = 2.0f;
+                break;
+        }
+        Debug.Log($"[GameManager] Applied Difficulty: {currentDifficulty}");
     }
 
     private void Update()

@@ -60,7 +60,6 @@ public class SawmillBuilding : MonoBehaviour
 
         Debug.Log($"[Sawmill] InputPosition: {InputPosition}, OutputPosition: {OutputPosition}");
 
-        StartCoroutine(MillingLoop());
         StartCoroutine(PassiveSalesLoop());
     }
 
@@ -117,35 +116,19 @@ public class SawmillBuilding : MonoBehaviour
         }
     }
 
-    private IEnumerator MillingLoop()
-    {
-        while (true)
-        {
-            var inv = InventoryManager.Instance;
-
-            if (inv != null && inv.HasItems(InventoryManager.InventoryZone.MillInput) && !IsProcessing)
-            {
-                CurrentLog = inv.Dequeue(InventoryManager.InventoryZone.MillInput);
-                if (CurrentLog != null)
-                    yield return StartCoroutine(ProcessLog(CurrentLog));
-            }
-            else
-            {
-                SetRunning(false);
-                yield return new WaitForSeconds(0.5f);
-            }
-        }
-    }
-
-    private IEnumerator ProcessLog(LumberItem log)
+    public IEnumerator ProcessLog(LumberItem log)
     {
         IsProcessing = true;
+        CurrentLog = log;
         ProcessingProgress = 0f;
         SetRunning(true);
 
         float duration = baseMillingTime * millingSpeedMultiplier;
         if (log.species != null)
             duration = log.species.millingTimePerLog * millingSpeedMultiplier;
+
+        if (GameManager.Instance != null)
+            duration *= GameManager.Instance.GlobalProcessingTimeMultiplier;
 
         float elapsed = 0f;
         while (elapsed < duration)
@@ -159,6 +142,7 @@ public class SawmillBuilding : MonoBehaviour
         CurrentLog = null;
         IsProcessing = false;
         ProcessingProgress = 0f;
+        SetRunning(false);
     }
 
     private void ProduceBoards(LumberItem log)
@@ -207,8 +191,8 @@ public class SawmillBuilding : MonoBehaviour
         }
 
         // Generate Sawdust byproduct (base yield + heavily buffed by wasted boards)
-        int baseSawdust = maxPotentialBoards;
-        int extraSawdustFromWaste = wastedBoards * 1; // Every wasted board turns into 1 sawdust (reduced from 3 for balance)
+        int baseSawdust = maxPotentialBoards * 3; // Tripled base sawdust yield to support multiple workers
+        int extraSawdustFromWaste = wastedBoards * 2; // Extra sawdust for inefficient cutting
         int totalSawdust = baseSawdust + extraSawdustFromWaste;
 
         GameManager.Instance?.AddSawdust(totalSawdust);

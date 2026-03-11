@@ -113,6 +113,9 @@ public class KilnBuilding : MonoBehaviour
         if (kilnType == KilnType.Solar)     dryTime *= 2f;
         if (kilnType == KilnType.Steam)     dryTime *= 0.6f;
 
+        if (GameManager.Instance != null)
+            dryTime *= GameManager.Instance.GlobalProcessingTimeMultiplier;
+
         _dryingSlots.Add(new KilnSlot(board, dryTime));
         Debug.Log($"[Kiln] Loaded {board.DisplayName} — drying for {dryTime:F0}s ({_dryingSlots.Count}/{slotCapacity} slots)");
         UpdateVisuals();

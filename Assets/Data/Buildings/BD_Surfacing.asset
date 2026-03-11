@@ -25,7 +25,7 @@ MonoBehaviour:
   effectRadius: 0
   helperPrefab: {fileID: 0}
   footprintSize: {x: 60, y: 40}
-  goldCost: 120
+  goldCost: 80
   reputationRequired: 0
   logsHarvestedRequired: 0
   requiredBuildings: []

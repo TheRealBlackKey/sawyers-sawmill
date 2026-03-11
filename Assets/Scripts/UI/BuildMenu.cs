@@ -227,7 +227,9 @@ public class BuildMenu : MonoBehaviour
 
     private void CreateEntry(BuildingData building, int index)
     {
-        bool canAfford = GameManager.Instance != null && GameManager.Instance.Gold >= (float)building.goldCost;
+        float cost = building.goldCost;
+        if (GameManager.Instance != null) cost *= GameManager.Instance.GlobalCostMultiplier;
+        bool canAfford = GameManager.Instance != null && GameManager.Instance.Gold >= cost;
 
         float rowHeight = 44f;
         float rowWidth = 260f;
@@ -276,7 +278,7 @@ public class BuildMenu : MonoBehaviour
         costRT.sizeDelta = new Vector2(50f, 32f);
 
         TextMeshProUGUI costText = costGO.AddComponent<TextMeshProUGUI>();
-        costText.text = $"${building.goldCost}";
+        costText.text = $"${cost}";
         costText.fontSize = 11;
         costText.color = canAfford ? new Color(0.5f, 0.9f, 0.4f) : new Color(0.9f, 0.4f, 0.4f);
         costText.alignment = TextAlignmentOptions.MidlineLeft;

@@ -123,11 +123,14 @@ public class PlacementManager : MonoBehaviour
     {
         if (buildingData == null) return;
 
-        if (GameManager.Instance != null && GameManager.Instance.Gold < buildingData.goldCost)
+        float cost = buildingData.goldCost;
+        if (GameManager.Instance != null) cost *= GameManager.Instance.GlobalCostMultiplier;
+
+        if (GameManager.Instance != null && GameManager.Instance.Gold < cost)
         {
             HUDManager.Instance?.ShowNotification(
                 "Can't Afford",
-                $"Need ${buildingData.goldCost} to build {buildingData.buildingName}",
+                $"Need ${Mathf.RoundToInt(cost)} to build {buildingData.buildingName}",
                 new Color(0.8f, 0.2f, 0.2f));
             return;
         }
@@ -412,7 +415,9 @@ public class PlacementManager : MonoBehaviour
             0f);
 
         // Deduct gold
-        GameManager.Instance?.SpendGold((float)_selectedBuilding.goldCost);
+        float cost = _selectedBuilding.goldCost;
+        if (GameManager.Instance != null) cost *= GameManager.Instance.GlobalCostMultiplier;
+        GameManager.Instance?.SpendGold(cost);
 
         // ── Create the building GameObject ────────────────────────────
         var buildingGO = new GameObject(_selectedBuilding.buildingName);

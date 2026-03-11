@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using Sawmill.Core;
+using Sawmill.UI;
 
 namespace Sawmill.Production
 {
@@ -206,7 +207,11 @@ namespace Sawmill.Production
                         inv.RemoveItem(targetLog, InventoryManager.InventoryZone.ForestStockpile);
                         targetZone?.UpdateLogPileVisual();
                     },
-                    completionAction = (_) => { inv.AddItem(targetLog, InventoryManager.InventoryZone.MillInput); },
+                    completionAction = (_) => 
+                    { 
+                        targetLog.IsClaimed = false; // RELEASE CLAIM so Millworker can take it
+                        inv.AddItem(targetLog, InventoryManager.InventoryZone.MillInput); 
+                    },
                     abortAction      = (_) => { targetLog.IsClaimed = false; },
                     description      = $"[Lumberjack-Hauler] Carry {targetLog.species.speciesName} log to sawmill"
                 };
@@ -312,8 +317,6 @@ namespace Sawmill.Production
                 Debug.Log(task.description);
             }
         }
-
-        // WaitAtSawmill removed — the Lumberjack doesn't wait for logs to process.
 
         private IEnumerator ChopTree(TreeComponent tree, ForestZone forest)
         {
